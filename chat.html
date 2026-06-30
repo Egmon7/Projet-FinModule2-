@@ -1,13 +1,260 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Egmon-Chat</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="https://res.cloudinary.com/ka4h4lpk/image/upload/f_auto,q_auto/logo_nnkd8f" type="image/jpeg" />
 </head>
-<body>
+<body class="chat-app min-h-screen">
 
+
+  <input type="radio" name="mobile-view" id="view-list" checked>
+  <input type="radio" name="mobile-view" id="view-chat">
+
+  <div class="chat-layout flex h-screen max-w-[1400px] mx-auto md:rounded-none rounded-2xl overflow-hidden md:m-0 m-2 md:h-screen h-[calc(100vh-1rem)] border border-[var(--chat-border)] md:border-0">
+
+    <!--  Liste des chats -->
+    <aside class="chat-panel-list chat-sidebar flex-col w-full md:w-[340px] md:shrink-0 md:border-r">
+
+      <!-- Header sidebar -->
+      <div class="flex items-center justify-between px-5 py-4 shrink-0">
+        <h1 class="text-xl font-bold">Chats</h1>
+        <div class="flex items-center gap-1">
+          <button type="button" data-theme-toggle class="chat-icon-btn p-2 rounded-lg transition" aria-label="Changer le thème">
+            <svg class="icon-moon w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="icon-sun w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          </button>
+          <button type="button" class="chat-icon-btn p-2 rounded-lg transition" aria-label="Nouveau chat">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <a href="index.html" class="chat-icon-btn p-2 rounded-lg transition md:hidden" aria-label="Déconnexion" title="Déconnexion">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          </a>
+        </div>
+      </div>
+
+     
+      <nav class="flex-1 overflow-y-auto chat-scroll px-3 pb-4 space-y-1">
+
+        <!-- Personn1 — -->
+        <label for="view-chat" class="chat-item chat-item-active flex items-center gap-3 p-3 rounded-xl cursor-pointer transition">
+          <img src="https://i.pravatar.cc/80?img=11" alt="Yong Tonghyon" class="w-11 h-11 rounded-full object-cover shrink-0">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold text-sm truncate">Personn1</span>
+              <span class="chat-muted text-xs shrink-0">11:32 AM</span>
+            </div>
+            <p class="chat-muted text-sm truncate">Arrive a bandal</p>
+          </div>
+          <span class="chat-badge text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center shrink-0">2</span>
+        </label>
+
+        <label for="view-chat" class="chat-item flex items-center gap-3 p-3 rounded-xl cursor-pointer transition">
+          <img src="https://i.pravatar.cc/80?img=5" alt="Personn2" class="w-11 h-11 rounded-full object-cover shrink-0">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold text-sm truncate">Personn2</span>
+              <span class="chat-muted text-xs shrink-0">10:45 AM</span>
+            </div>
+            <p class="chat-muted text-sm truncate">Tu as finis le projet ?</p>
+          </div>
+        </label>
+
+        <label for="view-chat" class="chat-item flex items-center gap-3 p-3 rounded-xl cursor-pointer transition">
+          <img src="https://i.pravatar.cc/80?img=12" alt="Personn3" class="w-11 h-11 rounded-full object-cover shrink-0">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold text-sm truncate">Personn3</span>
+              <span class="chat-muted text-xs shrink-0">9:20 AM</span>
+            </div>
+            <p class="chat-muted text-sm truncate">Bonjour.</p>
+          </div>
+          <span class="chat-badge text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center shrink-0">3</span>
+        </label>
+
+        <label for="view-chat" class="chat-item flex items-center gap-3 p-3 rounded-xl cursor-pointer transition">
+          <img src="https://i.pravatar.cc/80?img=9" alt="Personn4" class="w-11 h-11 rounded-full object-cover shrink-0">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold text-sm truncate">Personn4</span>
+              <span class="chat-muted text-xs shrink-0">8:15 AM</span>
+            </div>
+            <p class="chat-muted text-sm truncate">Salut</p>
+          </div>
+        </label>
+
+        <label for="view-chat" class="chat-item flex items-center gap-3 p-3 rounded-xl cursor-pointer transition">
+          <img src="https://i.pravatar.cc/80?img=15" alt="Personn5" class="w-11 h-11 rounded-full object-cover shrink-0">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-semibold text-sm truncate">Personn5</span>
+              <span class="chat-muted text-xs shrink-0">Hier</span>
+            </div>
+            <p class="chat-muted text-sm truncate">Mon argent !</p>
+          </div>
+        </label>
+
+      </nav>
+    </aside>
+
+    <!--  ZONE DE CONVERSATION  -->
+    <main class="chat-panel-chat flex-col flex-1 min-w-0 relative">
+
+      <input type="checkbox" id="toggle-search" class="chat-toggle">
+      <input type="checkbox" id="toggle-profile-info" class="chat-toggle">
+
+      <!-- Header conversation -->
+      <header class="chat-header flex items-center justify-between px-4 md:px-6 py-4 border-b shrink-0">
+        <div class="flex items-center gap-3">
+          <label for="view-list" class="chat-icon-btn p-2 rounded-lg cursor-pointer transition md:hidden" aria-label="Retour">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+          </label>
+          <img src="https://i.pravatar.cc/80?img=11" alt="Personn1" class="w-10 h-10 rounded-full object-cover">
+          <div>
+            <h2 class="font-semibold text-sm md:text-base">Personn1</h2>
+            <p class="chat-muted text-xs">Last seen recently</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1">
+          <label for="toggle-search" class="chat-icon-btn p-2 rounded-lg cursor-pointer transition" aria-label="Rechercher un message" title="Rechercher">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          </label>
+          <label for="toggle-profile-info" class="chat-icon-btn p-2 rounded-lg cursor-pointer transition" aria-label="Informations du contact" title="Informations">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.75"/>
+              <circle cx="12" cy="7.5" r="1.25" fill="currentColor"/>
+              <line x1="12" y1="11" x2="12" y2="16.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+            </svg>
+          </label>
+          <a href="index.html" class="chat-icon-btn p-2 rounded-lg transition" aria-label="Déconnexion" title="Déconnexion">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          </a>
+        </div>
+      </header>
+
+      <!-- Barre de recherche -->
+      <div class="chat-search-bar chat-header border-b px-4 md:px-6 py-3 shrink-0">
+        <div class="chat-input-bar flex items-center gap-2 border rounded-xl px-4 py-2.5 w-full">
+          <svg class="w-4 h-4 chat-muted shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input
+            type="search"
+            placeholder="Rechercher un message..."
+            class="flex-1 bg-transparent text-sm outline-none placeholder-[var(--chat-muted)]"
+          >
+          <label for="toggle-search" class="chat-muted text-xs cursor-pointer hover:opacity-80 shrink-0">Fermer</label>
+        </div>
+      </div>
+
+      <!-- Infos profil -->
+      <div class="profile-info-panel absolute top-[4.5rem] left-4 md:left-6 z-20 w-[calc(100%-2rem)] md:w-72 rounded-xl border shadow-lg p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-semibold text-sm">Informations</h3>
+          <label for="toggle-profile-info" class="chat-muted text-xs cursor-pointer hover:opacity-80">Fermer</label>
+        </div>
+        <div class="flex items-center gap-3 mb-4">
+          <img src="https://i.pravatar.cc/80?img=11" alt="Personn1" class="w-12 h-12 rounded-full object-cover">
+          <div>
+            <p class="font-semibold text-sm">Personn1</p>
+            <p class="chat-muted text-xs">En ligne récemment</p>
+          </div>
+        </div>
+        <dl class="space-y-2 text-sm">
+          <div>
+            <dt class="chat-muted text-xs">Email</dt>
+            <dd>personn1@exemple.com</dd>
+          </div>
+          <div>
+            <dt class="chat-muted text-xs">Téléphone</dt>
+            <dd>+243 000 000 000</dd>
+          </div>
+          <div>
+            <dt class="chat-muted text-xs">Localisation</dt>
+            <dd>Kinshasa, RDC</dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- Messages -->
+      <div class="flex-1 overflow-y-auto chat-scroll px-4 md:px-6 py-6 space-y-4">
+
+        <!-- Reçu -->
+        <div class="flex justify-start">
+          <div class="chat-received max-w-[85%] md:max-w-md px-4 py-3 rounded-2xl rounded-bl-sm">
+            <p class="text-sm leading-relaxed">Moral ?</p>
+            <span class="chat-muted text-xs mt-2 block text-right">10:55 AM</span>
+          </div>
+        </div>
+
+        <!-- Envoyé -->
+        <div class="flex justify-end">
+          <div class="chat-sent max-w-[85%] md:max-w-md px-4 py-3 rounded-2xl rounded-br-sm">
+            <p class="text-sm leading-relaxed">Tout chez toi</p>
+            <span class="text-xs mt-2 block text-right opacity-70">10:56 AM</span>
+          </div>
+        </div>
+
+        <!-- Fichier reçu -->
+        <div class="flex justify-start">
+          <div class="chat-received max-w-[85%] md:max-w-md px-4 py-3 rounded-2xl rounded-bl-sm">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+              </div>
+              <div>
+                <p class="text-sm font-medium">CryptoCoin-Release.pdf</p>
+                <p class="chat-muted text-xs">12 mb</p>
+              </div>
+            </div>
+            <span class="chat-muted text-xs mt-2 block text-right">10:57 AM</span>
+          </div>
+        </div>
+
+        <!-- Envoyé -->
+        <div class="flex justify-end">
+          <div class="chat-sent max-w-[85%] md:max-w-md px-4 py-3 rounded-2xl rounded-br-sm">
+            <p class="text-sm leading-relaxed">Thanks for sharing! I'll review the document and get back to you with feedback.</p>
+            <span class="text-xs mt-2 block text-right opacity-70">10:58 AM</span>
+          </div>
+        </div>
+
+        <!-- Reçu -->
+        <div class="flex justify-start">
+          <div class="chat-received max-w-[85%] md:max-w-md px-4 py-3 rounded-2xl rounded-bl-sm">
+            <p class="text-sm leading-relaxed">Arrive a bandal.</p>
+            <span class="chat-muted text-xs mt-2 block text-right">10:59 AM</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Zone de saisie -->
+      <footer class="chat-header border-t px-4 md:px-6 py-4 shrink-0">
+        <div class="flex items-center gap-3">
+          <button type="button" class="chat-icon-btn p-2 rounded-lg transition shrink-0" aria-label="Pièce jointe">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </button>
+          <div class="chat-input-bar flex-1 flex items-center gap-2 border rounded-xl px-4 py-2.5">
+            <input
+              type="text"
+              placeholder="Write a message..."
+              class="flex-1 bg-transparent text-sm outline-none placeholder-[var(--chat-muted)]"
+            >
+            <button type="button" class="chat-muted hover:opacity-80 transition shrink-0" aria-label="Emoji">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
+            </button>
+          </div>
+          <button type="button" class="chat-send-btn w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition hover:opacity-90" aria-label="Envoyer">
+            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+      </footer>
+
+    </main>
+  </div>
+
+  <script src="js/theme.js"></script>
 </body>
 </html>
