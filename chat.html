@@ -14,7 +14,47 @@
   <input type="radio" name="mobile-view" id="view-list" checked>
   <input type="radio" name="mobile-view" id="view-chat">
 
-  <div class="chat-layout flex h-screen max-w-[1400px] mx-auto md:rounded-none rounded-2xl overflow-hidden md:m-0 m-2 md:h-screen h-[calc(100vh-1rem)] border border-[var(--chat-border)] md:border-0">
+  <div class="chat-layout flex h-screen max-w-[1400px] mx-auto md:rounded-none rounded-2xl overflow-hidden md:m-0 m-2 md:h-screen h-[calc(100vh-1rem)] border border-[var(--chat-border)] md:border-0 relative">
+
+    <input type="checkbox" id="toggle-my-profile" class="chat-toggle">
+
+    <!-- Overlay profil -->
+    <label for="toggle-my-profile" class="my-profile-backdrop" aria-hidden="true"></label>
+
+    <!-- Barre latérale mon profil -->
+    <aside class="my-profile-drawer chat-sidebar flex flex-col">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-[var(--chat-border)] shrink-0">
+        <h2 class="text-lg font-bold">Mon profil</h2>
+        <label for="toggle-my-profile" class="chat-icon-btn p-2 rounded-lg cursor-pointer transition" aria-label="Fermer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </label>
+      </div>
+      <div class="flex-1 overflow-y-auto chat-scroll p-5">
+        <div class="flex flex-col items-center text-center mb-6">
+          <img src="https://i.pravatar.cc/80?img=3" alt="Mon profil" class="w-20 h-20 rounded-full object-cover mb-3">
+          <p class="font-semibold text-base">Egmon User</p>
+          <p class="chat-muted text-sm">Connecté</p>
+        </div>
+        <dl class="space-y-4 text-sm">
+          <div>
+            <dt class="chat-muted text-xs mb-0.5">Nom d'utilisateur</dt>
+            <dd class="font-medium">Egmon User</dd>
+          </div>
+          <div>
+            <dt class="chat-muted text-xs mb-0.5">Email</dt>
+            <dd class="font-medium">egmon@exemple.com</dd>
+          </div>
+          <div>
+            <dt class="chat-muted text-xs mb-0.5">Téléphone</dt>
+            <dd class="font-medium">+243 812 345 678</dd>
+          </div>
+          <div>
+            <dt class="chat-muted text-xs mb-0.5">Ville</dt>
+            <dd class="font-medium">Kinshasa</dd>
+          </div>
+        </dl>
+      </div>
+    </aside>
 
     <!--  Liste des chats -->
     <aside class="chat-panel-list chat-sidebar flex-col w-full md:w-[340px] md:shrink-0 md:border-r">
@@ -70,34 +110,25 @@
               <span class="font-semibold text-sm truncate">Personn3</span>
               <span class="chat-muted text-xs shrink-0">9:20 AM</span>
             </div>
-            <p class="chat-muted text-sm truncate">Bonjour.</p>
+            <p class="chat-muted text-sm truncate">Mon argent !!.</p>
           </div>
-          <span class="chat-badge text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center shrink-0">3</span>
-        </label>
-
-        <label for="view-chat" class="chat-item flex items-center gap-3 p-3 rounded-xl cursor-pointer transition">
-          <img src="https://i.pravatar.cc/80?img=9" alt="Personn4" class="w-11 h-11 rounded-full object-cover shrink-0">
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between gap-2">
-              <span class="font-semibold text-sm truncate">Personn4</span>
-              <span class="chat-muted text-xs shrink-0">8:15 AM</span>
-            </div>
-            <p class="chat-muted text-sm truncate">Salut</p>
-          </div>
-        </label>
-
-        <label for="view-chat" class="chat-item flex items-center gap-3 p-3 rounded-xl cursor-pointer transition">
-          <img src="https://i.pravatar.cc/80?img=15" alt="Personn5" class="w-11 h-11 rounded-full object-cover shrink-0">
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between gap-2">
-              <span class="font-semibold text-sm truncate">Personn5</span>
-              <span class="chat-muted text-xs shrink-0">Hier</span>
-            </div>
-            <p class="chat-muted text-sm truncate">Mon argent !</p>
-          </div>
+          <span class="chat-badge text-white text-xs font-medium w-5 h-5 rounded-full flex items-center justify-center shrink-0">13</span>
         </label>
 
       </nav>
+
+      <!-- Bouton profil connecté -->
+      <div class="chat-header border-t px-3 py-3 shrink-0">
+        <label for="toggle-my-profile" class="chat-item flex items-center gap-3 p-3 rounded-xl cursor-pointer transition w-full">
+          <img src="https://i.pravatar.cc/80?img=3" alt="Mon profil" class="w-10 h-10 rounded-full object-cover shrink-0">
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-sm truncate">Egmon User</p>
+            <p class="chat-muted text-xs truncate">Voir mon profil</p>
+          </div>
+          <svg class="w-4 h-4 chat-muted shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+        </label>
+      </div>
+
     </aside>
 
     <!--  ZONE DE CONVERSATION  -->
@@ -148,10 +179,10 @@
         </div>
       </div>
 
-      <!-- Infos profil -->
-      <div class="profile-info-panel absolute top-[4.5rem] left-4 md:left-6 z-20 w-[calc(100%-2rem)] md:w-72 rounded-xl border shadow-lg p-4">
+      <!-- Infos contact -->
+      <div class="profile-info-panel absolute top-[4.5rem] right-4 md:right-6 z-20 w-[calc(100%-2rem)] md:w-72 rounded-xl border shadow-lg p-4">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="font-semibold text-sm">Informations</h3>
+          <h3 class="font-semibold text-sm">Contact</h3>
           <label for="toggle-profile-info" class="chat-muted text-xs cursor-pointer hover:opacity-80">Fermer</label>
         </div>
         <div class="flex items-center gap-3 mb-4">
@@ -195,27 +226,12 @@
             <span class="text-xs mt-2 block text-right opacity-70">10:56 AM</span>
           </div>
         </div>
-
-        <!-- Fichier reçu -->
-        <div class="flex justify-start">
-          <div class="chat-received max-w-[85%] md:max-w-md px-4 py-3 rounded-2xl rounded-bl-sm">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-              </div>
-              <div>
-                <p class="text-sm font-medium">CryptoCoin-Release.pdf</p>
-                <p class="chat-muted text-xs">12 mb</p>
-              </div>
-            </div>
-            <span class="chat-muted text-xs mt-2 block text-right">10:57 AM</span>
-          </div>
-        </div>
+       
 
         <!-- Envoyé -->
         <div class="flex justify-end">
           <div class="chat-sent max-w-[85%] md:max-w-md px-4 py-3 rounded-2xl rounded-br-sm">
-            <p class="text-sm leading-relaxed">Thanks for sharing! I'll review the document and get back to you with feedback.</p>
+            <p class="text-sm leading-relaxed">c'est comment ?</p>
             <span class="text-xs mt-2 block text-right opacity-70">10:58 AM</span>
           </div>
         </div>

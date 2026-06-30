@@ -14,11 +14,11 @@ body {
   --chat-text: #1a1028;
   --chat-muted: #6b6280;
   --chat-received: #ede9fe;
-  --chat-sent: #7c3aed;
+  --chat-sent: #111827;
   --chat-sent-text: #ffffff;
   --chat-input: #ffffff;
-  --chat-badge: #7c3aed;
-  --chat-send: #7c3aed;
+  --chat-badge: #111827;
+  --chat-send: #111827;
   --chat-scrollbar: #d4cfe0;
 }
 
@@ -31,11 +31,11 @@ body {
   --chat-text: #ffffff;
   --chat-muted: #9b8fb0;
   --chat-received: #2d213f;
-  --chat-sent: #c4b5fd;
-  --chat-sent-text: #1e1033;
+  --chat-sent: #111827;
+  --chat-sent-text: #ffffff;
   --chat-input: #1a1228;
-  --chat-badge: #7c3aed;
-  --chat-send: #7c3aed;
+  --chat-badge: #111827;
+  --chat-send: #111827;
   --chat-scrollbar: #3b2d55;
 }
 
@@ -82,6 +82,10 @@ body {
 
 .chat-send-btn {
   background-color: var(--chat-send);
+}
+
+.chat-send-btn:hover {
+  background-color: #1f2937;
 }
 
 .chat-muted {
@@ -161,4 +165,39 @@ body {
 
 #toggle-profile-info:checked ~ .profile-info-panel {
   display: block;
+}
+
+.my-profile-backdrop {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 30;
+  cursor: pointer;
+}
+
+#toggle-my-profile:checked ~ .my-profile-backdrop {
+  display: block;
+}
+
+.my-profile-drawer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 300px;
+  max-width: 85%;
+  z-index: 40;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  border-right: 1px solid var(--chat-border);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+}
+
+#toggle-my-profile:checked ~ .my-profile-drawer {
+  transform: translateX(0);
+}
+
+#toggle-my-profile:checked ~ .chat-panel-list label[for="toggle-my-profile"] {
+  background-color: var(--chat-active);
 }
