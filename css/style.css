@@ -448,6 +448,78 @@ button.chat-contact-btn:hover {
   background-color: var(--chat-active);
 }
 
+.bio-edit-open-btn {
+  color: var(--chat-text);
+  background-color: var(--chat-active);
+  border: 1px solid var(--chat-border);
+}
+
+.bio-edit-open-btn:hover {
+  opacity: 0.9;
+}
+
+.bio-edit-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.bio-edit-modal.hidden {
+  display: none;
+}
+
+.bio-edit-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+}
+
+.bio-edit-modal-box {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 22rem;
+  padding: 1.25rem;
+  border-radius: 1rem;
+  border: 1px solid var(--chat-border);
+  background-color: var(--chat-surface);
+  color: var(--chat-text);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.bio-edit-input {
+  background-color: var(--chat-input);
+  border: 1px solid var(--chat-border);
+  color: var(--chat-text);
+  outline: none;
+}
+
+.bio-edit-input:focus {
+  border-color: var(--chat-text);
+}
+
+.bio-edit-save-btn {
+  background-color: var(--chat-send);
+  color: var(--chat-sent-text, #fff);
+}
+
+.bio-edit-save-btn:hover {
+  opacity: 0.9;
+}
+
+.bio-edit-cancel-btn {
+  background-color: var(--chat-active);
+  color: var(--chat-text);
+}
+
+.bio-edit-error {
+  color: #dc2626;
+}
+
 /* ── Formulaires auth── */
 
 .field-error {

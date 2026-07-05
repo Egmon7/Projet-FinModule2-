@@ -33,10 +33,37 @@
         <div class="flex flex-col items-center text-center mb-6">
           <img id="profilePanelAvatar" src="https://ui-avatar.com/api/?name=User&background=111827&color=fff" alt="Mon profil" class="w-20 h-20 rounded-full object-cover mb-3">
           <p id="profilePanelName" class="font-semibold text-base">Chargement…</p>
-          <p id="profilePanelEmail" class="chat-muted text-sm break-all">—</p>
+          <p id="profilePanelEmail" class="chat-muted text-sm break-all mt-1">—</p>
+          <div class="w-full mt-4 text-left">
+            <p class="chat-muted text-xs mb-1">Bio</p>
+            <p id="profilePanelBio" class="text-sm break-words min-h-[1.25rem]">—</p>
+          </div>
+          <button type="button" id="editBioBtn" class="bio-edit-open-btn mt-4 text-sm px-4 py-2 rounded-xl transition">
+            Modifier ma bio
+          </button>
         </div>
       </div>
     </aside>
+
+    <!-- Modal édition bio -->
+    <div id="bioEditModal" class="bio-edit-modal hidden" aria-hidden="true">
+      <div id="bioEditModalBackdrop" class="bio-edit-modal-backdrop"></div>
+      <div class="bio-edit-modal-box" role="dialog" aria-labelledby="bioEditModalTitle">
+        <h3 id="bioEditModalTitle" class="font-semibold text-base mb-3">Ma bio</h3>
+        <textarea
+          id="bioEditInput"
+          rows="4"
+          maxlength="280"
+          placeholder="Quelques mots sur vous…"
+          class="bio-edit-input w-full text-sm rounded-xl px-3 py-2.5 mb-3 resize-none"
+        ></textarea>
+        <p id="bioEditError" class="bio-edit-error hidden text-sm mb-3"></p>
+        <div class="flex gap-2 justify-end">
+          <button type="button" id="bioEditCancel" class="bio-edit-cancel-btn text-sm px-4 py-2 rounded-xl transition">Annuler</button>
+          <button type="button" id="bioEditSave" class="bio-edit-save-btn text-sm px-4 py-2 rounded-xl transition">Enregistrer</button>
+        </div>
+      </div>
+    </div>
 
     <!--  Liste des chats -->
     <aside class="chat-panel-list chat-sidebar flex-col w-full md:w-[340px] md:shrink-0 md:border-r">

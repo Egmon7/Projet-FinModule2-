@@ -97,6 +97,7 @@ async function initChat(user) {
 
   showEmptyChat();
   startAutoRefresh();
+  initProfileUpdateListener();
 
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) {
@@ -602,6 +603,21 @@ async function deleteActiveConversation() {
 function closeContactInfoPanel() {
   const toggle = document.getElementById("toggle-profile-info");
   if (toggle) toggle.checked = false;
+}
+
+function initProfileUpdateListener() {
+  document.addEventListener("egmon-profile-updated", function (event) {
+    const user = event.detail;
+    if (!user) return;
+
+    currentUser = user;
+
+    if (activeContact && isCurrentUser(activeContact)) {
+      updateContactInfo(activeContact);
+    }
+
+    refreshChatData();
+  });
 }
 
 async function loadMessages(conversationId, options) {
