@@ -83,17 +83,7 @@ function initBioEditor() {
     saveBtn.disabled = true;
 
     try {
-      const response = await Auth.apiRequest("/auth/me", {
-        method: "PATCH",
-        auth: true,
-        body: { bio: bio },
-      });
-
-      const user = response.data?.user || response.data;
-      if (!user) {
-        throw new Error("Réponse profil invalide.");
-      }
-
+      const user = await updateUserBio(bio);
       Auth.saveUser(user);
       displayProfile(user);
       closeBioModal();
@@ -108,6 +98,41 @@ function initBioEditor() {
       saveBtn.disabled = false;
     }
   });
+}
+
+async function updateUserBio(bio) {
+  const cached = Auth.getUser();
+  if (!cached || !cached.id) {
+    throw new Error("Profil introuvable.");
+  }
+
+  const endpoint = "/users/" + cached.id;
+  const body = { bio: bio };
+
+  try {
+    await Auth.apiRequest(endpoint, {
+      method: "PATCH",
+      auth: true,
+      body: body,
+    });
+  } catch (error) {
+    if (error.status === 404 || error.status === 405) {
+      await Auth.apiRequest(endpoint, {
+        method: "PUT",
+        auth: true,
+        body: body,
+      });
+    } else {
+      throw error;
+    }
+  }
+
+  const meRes = await Auth.apiRequest("/auth/me", { auth: true });
+  const user = meRes.data?.user || meRes.data;
+  if (!user) {
+    throw new Error("Impossible de recharger le profil.");
+  }
+  return user;
 }
 
 function openBioModal() {
