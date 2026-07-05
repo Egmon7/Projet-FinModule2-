@@ -28,6 +28,8 @@ let conversations = [];
 let activeContact = null;
 let activeConversationId = null;
 let refreshTimer = null;
+let renderedMessageKeys = [];
+let lastContactListOrderKey = "";
 
 const REFRESH_INTERVAL_MS = 1500;
 
@@ -104,7 +106,7 @@ async function refreshChatData() {
     if (activeConversationId) {
       await loadMessages(activeConversationId, { silent: true });
     }
-    renderContactList();
+    renderContactList({ silent: true });
   } catch (error) {
     console.error(error);
   }
@@ -119,7 +121,7 @@ function prefetchMissingPreviews() {
         const messages = res.data?.messages || res.data || [];
         if (!Array.isArray(messages) || messages.length === 0) return;
         updateConversationLastMessage(conv.id, messages[messages.length - 1]);
-        renderContactList();
+        renderContactList({ silent: true });
       })
       .catch(function () {});
   });
@@ -227,54 +229,141 @@ function sortUsersByRecentActivity(users) {
   });
 }
 
-function renderContactList() {
+function getContactListOrderKey() {
+  return sortUsersByRecentActivity(workspaceUsers)
+    .map(function (user) {
+      const conversation = getConversationWithUser(user.id);
+      return String(user.id) + ":" + getConversationTimestamp(conversation);
+    })
+    .join("|");
+}
+
+function renderContactList(options) {
+  const silent = options && options.silent;
   const nav = document.getElementById("contactsList");
   if (!nav) return;
 
-  nav.innerHTML = "";
+  const sortedUsers = sortUsersByRecentActivity(workspaceUsers);
 
-  if (workspaceUsers.length === 0) {
-    nav.innerHTML =
-      '<p class="chat-muted text-sm p-4 text-center">Aucun autre utilisateur inscrit pour le moment.</p>';
+  if (sortedUsers.length === 0) {
+    if (!nav.querySelector(".chat-contact-btn")) {
+      nav.innerHTML =
+        '<p class="chat-muted text-sm p-4 text-center">Aucun autre utilisateur inscrit pour le moment.</p>';
+    }
+    lastContactListOrderKey = "";
     return;
   }
 
-  sortUsersByRecentActivity(workspaceUsers).forEach(function (user) {
+  const emptyState = nav.querySelector(":scope > p.text-center");
+  if (emptyState) emptyState.remove();
+
+  const existingButtons = new Map();
+  nav.querySelectorAll(".chat-contact-btn").forEach(function (btn) {
+    existingButtons.set(btn.dataset.userId, btn);
+  });
+
+  sortedUsers.forEach(function (user) {
+    const userId = String(user.id);
     const conversation = getConversationWithUser(user.id);
-    const isActive = activeContact && activeContact.id === user.id;
-    const name = user.fullName || user.email || "Utilisateur";
+    const isActive = activeContact && String(activeContact.id) === userId;
+    let btn = existingButtons.get(userId);
 
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "chat-item chat-contact-btn flex items-center gap-3 p-3 rounded-xl cursor-pointer transition w-full";
-    if (isActive) btn.classList.add("chat-item-active");
-    btn.dataset.userId = user.id;
+    if (btn) {
+      updateContactListItem(btn, user, conversation, isActive);
+      existingButtons.delete(userId);
+    } else {
+      btn = createContactListItem(user, conversation, isActive);
+      nav.appendChild(btn);
+    }
+  });
 
-    btn.innerHTML =
-      '<img src="' +
-      escapeAttr(getAvatarUrl(user)) +
-      '" alt="' +
-      escapeAttr(name) +
-      '" class="w-11 h-11 rounded-full object-cover shrink-0">' +
-      '<div class="flex-1 min-w-0 text-left">' +
-      '<div class="flex items-center justify-between gap-2">' +
-      '<span class="font-semibold text-sm truncate">' +
-      escapeHtml(name) +
-      "</span>" +
-      '<span class="chat-muted text-xs shrink-0">' +
-      escapeHtml(getLastMessageTime(conversation)) +
-      "</span>" +
-      "</div>" +
-      '<p class="chat-muted text-sm truncate">' +
-      escapeHtml(getLastMessagePreview(conversation)) +
-      "</p>" +
-      "</div>";
+  existingButtons.forEach(function (btn) {
+    btn.remove();
+  });
 
-    btn.addEventListener("click", function () {
-      openChatWithUser(user);
+  const orderKey = getContactListOrderKey();
+  if (!silent || orderKey !== lastContactListOrderKey) {
+    syncContactListOrder(nav, sortedUsers);
+    lastContactListOrderKey = orderKey;
+  }
+}
+
+function createContactListItem(user, conversation, isActive) {
+  const userId = String(user.id);
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className =
+    "chat-item chat-contact-btn flex items-center gap-3 p-3 rounded-xl cursor-pointer transition w-full";
+  btn.dataset.userId = userId;
+
+  const img = document.createElement("img");
+  img.className = "w-11 h-11 rounded-full object-cover shrink-0";
+  img.dataset.contactAvatar = "1";
+
+  const body = document.createElement("div");
+  body.className = "flex-1 min-w-0 text-left";
+
+  const row = document.createElement("div");
+  row.className = "flex items-center justify-between gap-2";
+
+  const nameEl = document.createElement("span");
+  nameEl.className = "font-semibold text-sm truncate";
+  nameEl.dataset.contactName = "1";
+
+  const timeEl = document.createElement("span");
+  timeEl.className = "chat-muted text-xs shrink-0";
+  timeEl.dataset.contactTime = "1";
+
+  const previewEl = document.createElement("p");
+  previewEl.className = "chat-muted text-sm truncate";
+  previewEl.dataset.contactPreview = "1";
+
+  row.appendChild(nameEl);
+  row.appendChild(timeEl);
+  body.appendChild(row);
+  body.appendChild(previewEl);
+  btn.appendChild(img);
+  btn.appendChild(body);
+
+  btn.addEventListener("click", function () {
+    const contact = workspaceUsers.find(function (item) {
+      return String(item.id) === userId;
     });
+    if (contact) openChatWithUser(contact);
+  });
 
-    nav.appendChild(btn);
+  updateContactListItem(btn, user, conversation, isActive);
+  return btn;
+}
+
+function updateContactListItem(btn, user, conversation, isActive) {
+  const name = user.fullName || user.email || "Utilisateur";
+  const preview = getLastMessagePreview(conversation);
+  const time = getLastMessageTime(conversation);
+  const avatarUrl = getAvatarUrl(user);
+
+  btn.classList.toggle("chat-item-active", !!isActive);
+
+  const img = btn.querySelector("[data-contact-avatar]");
+  if (img) {
+    if (img.getAttribute("src") !== avatarUrl) img.setAttribute("src", avatarUrl);
+    if (img.getAttribute("alt") !== name) img.setAttribute("alt", name);
+  }
+
+  const nameEl = btn.querySelector("[data-contact-name]");
+  if (nameEl && nameEl.textContent !== name) nameEl.textContent = name;
+
+  const timeEl = btn.querySelector("[data-contact-time]");
+  if (timeEl && timeEl.textContent !== time) timeEl.textContent = time;
+
+  const previewEl = btn.querySelector("[data-contact-preview]");
+  if (previewEl && previewEl.textContent !== preview) previewEl.textContent = preview;
+}
+
+function syncContactListOrder(nav, sortedUsers) {
+  sortedUsers.forEach(function (user) {
+    const btn = nav.querySelector('.chat-contact-btn[data-user-id="' + user.id + '"]');
+    if (btn) nav.appendChild(btn);
   });
 }
 
@@ -301,8 +390,9 @@ async function openChatWithUser(user) {
     activeConversationId = conversation.id;
     updateChatHeader(user);
     updateContactInfo(user);
+    renderedMessageKeys = [];
     await loadMessages(activeConversationId);
-    renderContactList();
+    renderContactList({ silent: true });
 
     const viewChat = document.getElementById("view-chat");
     if (viewChat) viewChat.checked = true;
@@ -345,13 +435,72 @@ async function loadMessages(conversationId, options) {
     updateConversationLastMessage(conversationId, list[list.length - 1]);
   }
 
-  if (silent && activeConversationId === conversationId) {
-    const container = document.getElementById("messagesContainer");
-    const previousCount = container ? container.querySelectorAll(".flex.justify-end, .flex.justify-start").length : 0;
-    if (previousCount === list.length) return;
+  if (silent && activeConversationId === conversationId && appendNewMessages(list)) {
+    return;
   }
 
   renderMessages(list);
+}
+
+function getMessageKey(message) {
+  if (message.id) return String(message.id);
+  return String(message.createdAt || "") + "|" + String(message.content || "");
+}
+
+function appendNewMessages(messages) {
+  const container = document.getElementById("messagesContainer");
+  if (!container) return false;
+
+  const emptyState = container.querySelector(":scope > p.text-center");
+  if (emptyState) return false;
+
+  if (messages.length < renderedMessageKeys.length) return false;
+
+  for (let i = 0; i < renderedMessageKeys.length; i++) {
+    if (getMessageKey(messages[i]) !== renderedMessageKeys[i]) return false;
+  }
+
+  if (messages.length === renderedMessageKeys.length) return true;
+
+  const wasAtBottom =
+    container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+
+  for (let i = renderedMessageKeys.length; i < messages.length; i++) {
+    container.appendChild(createMessageBubble(messages[i]));
+    renderedMessageKeys.push(getMessageKey(messages[i]));
+  }
+
+  if (wasAtBottom) {
+    container.scrollTop = container.scrollHeight;
+  }
+
+  return true;
+}
+
+function createMessageBubble(msg) {
+  const sender = msg.sender || {};
+  const isSent = isCurrentUser(sender);
+  const bubble = document.createElement("div");
+  bubble.className = "flex " + (isSent ? "justify-end" : "justify-start");
+  bubble.dataset.messageKey = getMessageKey(msg);
+
+  bubble.innerHTML =
+    '<div class="' +
+    (isSent ? "chat-sent" : "chat-received") +
+    ' max-w-[85%] md:max-w-md px-4 py-3 rounded-2xl ' +
+    (isSent ? "rounded-br-sm" : "rounded-bl-sm") +
+    '">' +
+    '<p class="text-sm leading-relaxed">' +
+    escapeHtml(msg.content || "") +
+    "</p>" +
+    '<span class="' +
+    (isSent ? "opacity-70" : "chat-muted") +
+    ' text-xs mt-2 block text-right">' +
+    escapeHtml(formatMessageDate(msg.createdAt)) +
+    "</span>" +
+    "</div>";
+
+  return bubble;
 }
 
 function renderMessages(messages) {
@@ -359,6 +508,7 @@ function renderMessages(messages) {
   if (!container) return;
 
   container.innerHTML = "";
+  renderedMessageKeys = [];
 
   if (messages.length === 0) {
     container.innerHTML =
@@ -367,28 +517,8 @@ function renderMessages(messages) {
   }
 
   messages.forEach(function (msg) {
-    const sender = msg.sender || {};
-    const isSent = isCurrentUser(sender);
-    const bubble = document.createElement("div");
-    bubble.className = "flex " + (isSent ? "justify-end" : "justify-start");
-
-    bubble.innerHTML =
-      '<div class="' +
-      (isSent ? "chat-sent" : "chat-received") +
-      ' max-w-[85%] md:max-w-md px-4 py-3 rounded-2xl ' +
-      (isSent ? "rounded-br-sm" : "rounded-bl-sm") +
-      '">' +
-      '<p class="text-sm leading-relaxed">' +
-      escapeHtml(msg.content || "") +
-      "</p>" +
-      '<span class="' +
-      (isSent ? "opacity-70" : "chat-muted") +
-      ' text-xs mt-2 block text-right">' +
-      escapeHtml(formatMessageDate(msg.createdAt)) +
-      "</span>" +
-      "</div>";
-
-    container.appendChild(bubble);
+    container.appendChild(createMessageBubble(msg));
+    renderedMessageKeys.push(getMessageKey(msg));
   });
 
   container.scrollTop = container.scrollHeight;
