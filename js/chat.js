@@ -84,7 +84,7 @@ async function loadContacts() {
 
     const allUsers = usersRes.data?.users || usersRes.data || [];
     workspaceUsers = allUsers.filter(function (user) {
-      return user.id !== currentUser.id;
+      return user.id !== currentUser.id && !isBlockedUser(user);
     });
 
     conversations = convRes.data?.conversations || convRes.data || [];
