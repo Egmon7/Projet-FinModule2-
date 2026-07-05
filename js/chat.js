@@ -27,6 +27,9 @@ let workspaceUsers = [];
 let conversations = [];
 let activeContact = null;
 let activeConversationId = null;
+let refreshTimer = null;
+
+const REFRESH_INTERVAL_MS = 1500;
 
 function isCurrentUser(user) {
   if (!user || !currentUser) return false;
@@ -42,7 +45,6 @@ async function initChat(user) {
 
   const messageForm = document.getElementById("messageForm");
   const messageInput = document.getElementById("messageInput");
-  const refreshBtn = document.getElementById("refreshContactsBtn");
 
   if (messageForm && messageInput) {
     messageForm.addEventListener("submit", async function (event) {
@@ -59,6 +61,7 @@ async function initChat(user) {
         });
         messageInput.value = "";
         await loadMessages(activeConversationId);
+        await refreshChatData();
       } catch (error) {
         console.error(error);
       } finally {
@@ -68,16 +71,58 @@ async function initChat(user) {
     });
   }
 
-  if (refreshBtn) {
-    refreshBtn.addEventListener("click", async function () {
-      await loadContacts();
-      renderContactList();
-    });
-  }
-
-  await loadContacts();
-  renderContactList();
+  await refreshChatData();
   showEmptyChat();
+  startAutoRefresh();
+
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) {
+      stopAutoRefresh();
+    } else {
+      refreshChatData();
+      startAutoRefresh();
+    }
+  });
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  refreshTimer = setInterval(refreshChatData, REFRESH_INTERVAL_MS);
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+}
+
+async function refreshChatData() {
+  try {
+    await loadContacts();
+    prefetchMissingPreviews();
+    if (activeConversationId) {
+      await loadMessages(activeConversationId, { silent: true });
+    }
+    renderContactList();
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function prefetchMissingPreviews() {
+  conversations.forEach(function (conv) {
+    if (getLastMessage(conv)) return;
+
+    Auth.apiRequest("/conversations/" + conv.id + "/messages", { auth: true })
+      .then(function (res) {
+        const messages = res.data?.messages || res.data || [];
+        if (!Array.isArray(messages) || messages.length === 0) return;
+        updateConversationLastMessage(conv.id, messages[messages.length - 1]);
+        renderContactList();
+      })
+      .catch(function () {});
+  });
 }
 
 async function loadContacts() {
@@ -92,8 +137,10 @@ async function loadContacts() {
       return !isCurrentUser(user) && !isBlockedUser(user);
     });
 
-    conversations = convRes.data?.conversations || convRes.data || [];
-    if (!Array.isArray(conversations)) conversations = [];
+    const incoming = convRes.data?.conversations || convRes.data || [];
+    const nextConversations = Array.isArray(incoming) ? incoming.slice() : [];
+    mergeConversationPreviews(nextConversations);
+    conversations = nextConversations;
   } catch (error) {
     const nav = document.getElementById("contactsList");
     if (nav) {
@@ -124,17 +171,60 @@ function getConversationWithUser(userId) {
   });
 }
 
+function mergeConversationPreviews(incomingConversations) {
+  incomingConversations.forEach(function (incoming) {
+    const existing = conversations.find(function (conv) {
+      return String(conv.id) === String(incoming.id);
+    });
+    const incomingLast = getLastMessage(incoming);
+    const existingLast = existing ? getLastMessage(existing) : null;
+
+    if (existingLast && (!incomingLast || getConversationTimestamp({ lastMessage: existingLast }) > getConversationTimestamp({ lastMessage: incomingLast }))) {
+      incoming.lastMessage = existingLast;
+    }
+  });
+}
+
+function getLastMessage(conversation) {
+  if (!conversation) return null;
+  return conversation.lastMessage || conversation.latestMessage || null;
+}
+
+function updateConversationLastMessage(conversationId, message) {
+  if (!message) return;
+  const conversation = conversations.find(function (conv) {
+    return String(conv.id) === String(conversationId);
+  });
+  if (conversation) {
+    conversation.lastMessage = message;
+  }
+}
+
 function getLastMessagePreview(conversation) {
-  if (!conversation) return "Nouvelle conversation";
-  const last = conversation.lastMessage || conversation.latestMessage;
+  const last = getLastMessage(conversation);
   if (last && last.content) return last.content;
-  return "Nouvelle conversation";
+  return "Aucun message";
 }
 
 function getLastMessageTime(conversation) {
-  const last = conversation && (conversation.lastMessage || conversation.latestMessage);
+  const last = getLastMessage(conversation);
   if (!last || !last.createdAt) return "";
-  return formatTime(last.createdAt);
+  return formatMessageDate(last.createdAt);
+}
+
+function getConversationTimestamp(conversation) {
+  const last = getLastMessage(conversation);
+  if (last && last.createdAt) return new Date(last.createdAt).getTime();
+  if (conversation && conversation.updatedAt) return new Date(conversation.updatedAt).getTime();
+  return 0;
+}
+
+function sortUsersByRecentActivity(users) {
+  return users.slice().sort(function (a, b) {
+    const convA = getConversationWithUser(a.id);
+    const convB = getConversationWithUser(b.id);
+    return getConversationTimestamp(convB) - getConversationTimestamp(convA);
+  });
 }
 
 function renderContactList() {
@@ -149,7 +239,7 @@ function renderContactList() {
     return;
   }
 
-  workspaceUsers.forEach(function (user) {
+  sortUsersByRecentActivity(workspaceUsers).forEach(function (user) {
     const conversation = getConversationWithUser(user.id);
     const isActive = activeContact && activeContact.id === user.id;
     const name = user.fullName || user.email || "Utilisateur";
@@ -242,13 +332,26 @@ function updateContactInfo(user) {
   setAttr("contactInfoAvatar", "alt", name);
 }
 
-async function loadMessages(conversationId) {
+async function loadMessages(conversationId, options) {
+  const silent = options && options.silent;
   const res = await Auth.apiRequest("/conversations/" + conversationId + "/messages", {
     auth: true,
   });
 
   const messages = res.data?.messages || res.data || [];
-  renderMessages(Array.isArray(messages) ? messages : []);
+  const list = Array.isArray(messages) ? messages : [];
+
+  if (list.length > 0) {
+    updateConversationLastMessage(conversationId, list[list.length - 1]);
+  }
+
+  if (silent && activeConversationId === conversationId) {
+    const container = document.getElementById("messagesContainer");
+    const previousCount = container ? container.querySelectorAll(".flex.justify-end, .flex.justify-start").length : 0;
+    if (previousCount === list.length) return;
+  }
+
+  renderMessages(list);
 }
 
 function renderMessages(messages) {
@@ -281,7 +384,7 @@ function renderMessages(messages) {
       '<span class="' +
       (isSent ? "opacity-70" : "chat-muted") +
       ' text-xs mt-2 block text-right">' +
-      escapeHtml(formatTime(msg.createdAt)) +
+      escapeHtml(formatMessageDate(msg.createdAt)) +
       "</span>" +
       "</div>";
 
@@ -305,12 +408,33 @@ function showChatArea() {
   if (active) active.classList.remove("hidden");
 }
 
-function formatTime(dateStr) {
+function formatMessageDate(dateStr) {
   if (!dateStr) return "";
   try {
-    return new Date(dateStr).toLocaleTimeString("fr-FR", {
-      hour: "2-digit",
-      minute: "2-digit",
+    const date = new Date(dateStr);
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfYesterday = new Date(startOfToday);
+    startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+    const startOfWeek = new Date(startOfToday);
+    startOfWeek.setDate(startOfWeek.getDate() - 6);
+
+    if (date >= startOfToday) {
+      return date.toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+    if (date >= startOfYesterday) {
+      return "Hier";
+    }
+    if (date >= startOfWeek) {
+      return date.toLocaleDateString("fr-FR", { weekday: "short" });
+    }
+    return date.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "2-digit",
     });
   } catch (error) {
     return "";
