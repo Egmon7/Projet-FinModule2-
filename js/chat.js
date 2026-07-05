@@ -4,19 +4,15 @@ document.addEventListener("DOMContentLoaded", async function () {
     return;
   }
 
-  let currentUser = Auth.getUser();
-
   try {
-    if (!currentUser) {
-      const profileRes = await Auth.apiRequest("/auth/me", { auth: true });
-      currentUser = profileRes.data?.user || profileRes.data;
-      if (currentUser) Auth.saveUser(currentUser);
-    }
+    const profileRes = await Auth.apiRequest("/auth/me", { auth: true });
+    const currentUser = profileRes.data?.user || profileRes.data;
 
     if (!currentUser) {
       throw new Error("Profil introuvable.");
     }
 
+    Auth.saveUser(currentUser);
     await initChat(currentUser);
   } catch (error) {
     if (error.status === 401) {
@@ -32,6 +28,15 @@ let conversations = [];
 let activeContact = null;
 let activeConversationId = null;
 
+function isCurrentUser(user) {
+  if (!user || !currentUser) return false;
+  if (user.id && currentUser.id && String(user.id) === String(currentUser.id)) return true;
+  if (user.email && currentUser.email && user.email.toLowerCase() === currentUser.email.toLowerCase()) {
+    return true;
+  }
+  return false;
+}
+
 async function initChat(user) {
   currentUser = user;
 
@@ -43,7 +48,7 @@ async function initChat(user) {
     messageForm.addEventListener("submit", async function (event) {
       event.preventDefault();
       const content = messageInput.value.trim();
-      if (!content || !activeConversationId) return;
+      if (!content || !activeConversationId || (activeContact && isCurrentUser(activeContact))) return;
 
       messageInput.disabled = true;
       try {
@@ -84,7 +89,7 @@ async function loadContacts() {
 
     const allUsers = usersRes.data?.users || usersRes.data || [];
     workspaceUsers = allUsers.filter(function (user) {
-      return user.id !== currentUser.id && !isBlockedUser(user);
+      return !isCurrentUser(user) && !isBlockedUser(user);
     });
 
     conversations = convRes.data?.conversations || convRes.data || [];
@@ -108,11 +113,14 @@ function getAvatarUrl(user) {
 function getConversationWithUser(userId) {
   return conversations.find(function (conv) {
     if (conv.type && conv.type !== "private") return false;
-    const participants = conv.participants || [];
-    return participants.some(function (p) {
-      const participant = p.user || p;
-      return participant.id === userId;
+    const participants = (conv.participants || []).map(function (p) {
+      return p.user || p;
     });
+    const otherParticipants = participants.filter(function (participant) {
+      return !isCurrentUser(participant);
+    });
+    if (otherParticipants.length !== 1) return false;
+    return String(otherParticipants[0].id) === String(userId);
   });
 }
 
@@ -181,6 +189,8 @@ function renderContactList() {
 }
 
 async function openChatWithUser(user) {
+  if (isCurrentUser(user)) return;
+
   activeContact = user;
   let conversation = getConversationWithUser(user.id);
 
@@ -255,7 +265,7 @@ function renderMessages(messages) {
 
   messages.forEach(function (msg) {
     const sender = msg.sender || {};
-    const isSent = sender.id === currentUser.id;
+    const isSent = isCurrentUser(sender);
     const bubble = document.createElement("div");
     bubble.className = "flex " + (isSent ? "justify-end" : "justify-start");
 
