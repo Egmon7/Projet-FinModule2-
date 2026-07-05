@@ -329,6 +329,26 @@ button.chat-contact-btn:hover {
   color: var(--chat-text);
 }
 
+.chat-edit-actions {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.chat-edit-btn {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.5rem;
+  background-color: var(--chat-active);
+  color: var(--chat-text);
+  transition: opacity 0.15s ease;
+}
+
+.chat-edit-btn:hover {
+  opacity: 0.85;
+}
+
 .chat-message-actions {
   display: none;
 }
