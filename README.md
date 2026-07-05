@@ -19,7 +19,7 @@ Clone d'une application de messagerie inspiré de la maquette [React Chat (Tailk
 - **Authentification** : inscription, connexion, déconnexion
 - **Profil** : récupération du profil connecté via `GET /auth/me`
 - **Mot de passe oublié** : envoi d'un code par email et réinitialisation
-- **Chat** : interface responsive (desktop et mobile)
+- **Chat** : liste des utilisateurs inscrits, conversations et messages via l'API
 - **Thème** : mode clair / sombre
 
 ## Structure du projet
@@ -37,6 +37,7 @@ projet2/
 │   ├── login.js
 │   ├── register.js
 │   ├── profile.js
+│   ├── chat.js
 │   ├── forgot-password.js
 │   └── theme.js
 └── images/
@@ -59,3 +60,8 @@ Routes utilisées :
 - `POST /auth/logout`
 - `POST /auth/forgot-password`
 - `POST /auth/reset-password`
+- `GET /users`
+- `GET /conversations`
+- `POST /conversations`
+- `GET /conversations/{id}/messages`
+- `POST /conversations/{id}/messages`

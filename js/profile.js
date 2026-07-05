@@ -43,9 +43,9 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 });
 
-/**
- * Affiche les infos utilisateur dans le panneau et le bouton du bas
- */
+
+ //Affiche les infos utilisateur 
+ 
 function displayProfile(user) {
   const name = user.fullName || "Utilisateur";
   const email = user.email || "—";

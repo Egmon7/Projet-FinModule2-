@@ -53,8 +53,20 @@ body {
   background-color: var(--chat-active);
 }
 
-.chat-item:hover {
+button.chat-contact-btn {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.chat-item:hover,
+button.chat-contact-btn:hover {
   background-color: var(--chat-active);
+}
+
+.chat-empty-state {
+  color: var(--chat-muted);
 }
 
 .chat-received {
