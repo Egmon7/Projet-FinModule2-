@@ -175,6 +175,134 @@ button.chat-contact-btn:hover {
   padding: 0 1px;
 }
 
+.chat-search-empty {
+  background-color: var(--chat-surface);
+}
+
+.chat-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem 1rem;
+  gap: 0.75rem;
+  color: var(--chat-muted);
+}
+
+.chat-state-icon {
+  width: 3rem;
+  height: 3rem;
+  opacity: 0.4;
+}
+
+.chat-state-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--chat-text);
+}
+
+.chat-state-text {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  max-width: 18rem;
+}
+
+.chat-state-spinner {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 2px solid var(--chat-border);
+  border-top-color: var(--chat-text);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.chat-bubble-wrap {
+  max-width: 85%;
+}
+
+@media (min-width: 768px) {
+  .chat-bubble-wrap {
+    max-width: 28rem;
+  }
+}
+
+.chat-bubble-inner {
+  position: relative;
+}
+
+.chat-message-actions {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: flex-end;
+  margin-top: 0.35rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.chat-bubble-wrap:hover .chat-message-actions,
+.chat-bubble-wrap:focus-within .chat-message-actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .chat-message-actions {
+    opacity: 1;
+  }
+}
+
+.chat-message-action-btn {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.45rem;
+  background-color: var(--chat-active);
+  color: var(--chat-text);
+  transition: opacity 0.15s ease;
+}
+
+.chat-message-action-btn:hover {
+  opacity: 0.85;
+}
+
+.chat-edit-input {
+  width: 100%;
+  min-height: 4rem;
+  resize: vertical;
+  background: transparent;
+  border: 1px solid var(--chat-border);
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.875rem;
+  color: inherit;
+  outline: none;
+}
+
+.chat-message-edited {
+  font-size: 0.65rem;
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.chat-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 5.5rem;
+  transform: translateX(-50%);
+  z-index: 30;
+  max-width: calc(100% - 2rem);
+  padding: 0.65rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.8125rem;
+  background-color: var(--chat-text);
+  color: var(--chat-bg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.chat-toast--error {
+  background-color: #dc2626;
+  color: #fff;
+}
+
 .profile-info-panel {
   display: none;
   background-color: var(--chat-surface);

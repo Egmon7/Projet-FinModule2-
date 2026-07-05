@@ -32,6 +32,11 @@ let renderedMessageKeys = [];
 let lastContactListOrderKey = "";
 let currentMessages = [];
 let messageSearchQuery = "";
+let contactsLoading = false;
+let contactsLoadError = null;
+let messagesLoading = false;
+let editingMessageId = null;
+let chatToastTimer = null;
 
 const REFRESH_INTERVAL_MS = 1500;
 
@@ -75,10 +80,19 @@ async function initChat(user) {
     });
   }
 
-  await refreshChatData();
+  initMessageSearch();
+  initMessageActions();
+
+  try {
+    await loadContacts({ showLoading: true });
+    renderContactList();
+    prefetchMissingPreviews();
+  } catch (error) {
+    console.error(error);
+  }
+
   showEmptyChat();
   startAutoRefresh();
-  initMessageSearch();
 
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) {
@@ -104,7 +118,7 @@ function stopAutoRefresh() {
 
 async function refreshChatData() {
   try {
-    await loadContacts();
+    await loadContacts({ silent: true });
     prefetchMissingPreviews();
     if (activeConversationId) {
       await loadMessages(activeConversationId, { silent: true });
@@ -130,7 +144,16 @@ function prefetchMissingPreviews() {
   });
 }
 
-async function loadContacts() {
+async function loadContacts(options) {
+  const silent = options && options.silent;
+  const showLoading = options && options.showLoading;
+
+  if (showLoading) {
+    contactsLoading = true;
+    contactsLoadError = null;
+    renderContactList();
+  }
+
   try {
     const [usersRes, convRes] = await Promise.all([
       Auth.apiRequest("/users", { auth: true }),
@@ -146,13 +169,15 @@ async function loadContacts() {
     const nextConversations = Array.isArray(incoming) ? incoming.slice() : [];
     mergeConversationPreviews(nextConversations);
     conversations = nextConversations;
+    contactsLoadError = null;
   } catch (error) {
-    const nav = document.getElementById("contactsList");
-    if (nav) {
-      nav.innerHTML =
-        '<p class="chat-muted text-sm p-4 text-center">Impossible de charger les contacts. Réessayez.</p>';
+    contactsLoadError = error.message || "Impossible de charger les contacts.";
+    if (!silent) {
+      renderContactList();
     }
     throw error;
+  } finally {
+    contactsLoading = false;
   }
 }
 
@@ -206,6 +231,7 @@ function updateConversationLastMessage(conversationId, message) {
 }
 
 function getLastMessagePreview(conversation) {
+  if (!conversation) return "Commencer la conversation";
   const last = getLastMessage(conversation);
   if (last && last.content) return last.content;
   return "Aucun message";
@@ -246,18 +272,38 @@ function renderContactList(options) {
   const nav = document.getElementById("contactsList");
   if (!nav) return;
 
+  if (contactsLoading) {
+    nav.innerHTML = buildChatStateHtml("loading", {
+      title: "Chargement…",
+      text: "Récupération des contacts et conversations",
+    });
+    lastContactListOrderKey = "";
+    return;
+  }
+
+  if (contactsLoadError) {
+    nav.innerHTML = buildChatStateHtml("error", {
+      title: "Erreur de chargement",
+      text: contactsLoadError,
+    });
+    lastContactListOrderKey = "";
+    return;
+  }
+
   const sortedUsers = sortUsersByRecentActivity(workspaceUsers);
 
   if (sortedUsers.length === 0) {
     if (!nav.querySelector(".chat-contact-btn")) {
-      nav.innerHTML =
-        '<p class="chat-muted text-sm p-4 text-center">Aucun autre utilisateur inscrit pour le moment.</p>';
+      nav.innerHTML = buildChatStateHtml("empty", {
+        title: "Aucun contact",
+        text: "Aucun autre utilisateur inscrit pour le moment.",
+      });
     }
     lastContactListOrderKey = "";
     return;
   }
 
-  const emptyState = nav.querySelector(":scope > p.text-center");
+  const emptyState = nav.querySelector(":scope > .chat-state");
   if (emptyState) emptyState.remove();
 
   const existingButtons = new Map();
@@ -428,24 +474,40 @@ function updateContactInfo(user) {
 
 async function loadMessages(conversationId, options) {
   const silent = options && options.silent;
-  const res = await Auth.apiRequest("/conversations/" + conversationId + "/messages", {
-    auth: true,
-  });
 
-  const messages = res.data?.messages || res.data || [];
-  const list = Array.isArray(messages) ? messages : [];
-  currentMessages = list;
-
-  if (list.length > 0) {
-    updateConversationLastMessage(conversationId, list[list.length - 1]);
+  if (!silent) {
+    messagesLoading = true;
+    editingMessageId = null;
+    showMessagesPanelState("loading");
   }
 
-  if (silent && activeConversationId === conversationId && appendNewMessages(list)) {
-    if (messageSearchQuery) applyMessageSearch();
-    return;
-  }
+  try {
+    const res = await Auth.apiRequest("/conversations/" + conversationId + "/messages", {
+      auth: true,
+    });
 
-  renderMessages(list);
+    const messages = res.data?.messages || res.data || [];
+    const list = Array.isArray(messages) ? messages : [];
+    currentMessages = list;
+
+    if (list.length > 0) {
+      updateConversationLastMessage(conversationId, list[list.length - 1]);
+    }
+
+    if (silent && activeConversationId === conversationId && appendNewMessages(list)) {
+      if (messageSearchQuery) applyMessageSearch();
+      return;
+    }
+
+    renderMessages(list);
+  } catch (error) {
+    if (!silent) {
+      showMessagesPanelState("error", error.message || "Impossible de charger les messages.");
+    }
+    throw error;
+  } finally {
+    messagesLoading = false;
+  }
 }
 
 function getMessageKey(message) {
@@ -457,10 +519,12 @@ function appendNewMessages(messages) {
   const container = document.getElementById("messagesContainer");
   if (!container) return false;
 
-  const emptyState = container.querySelector(":scope > p.text-center");
-  if (emptyState) return false;
+  const panelState = container.querySelector(":scope > .chat-state");
+  if (panelState) return false;
 
-  if (messages.length < renderedMessageKeys.length) return false;
+  if (messages.length < renderedMessageKeys.length) {
+    return false;
+  }
 
   for (let i = 0; i < renderedMessageKeys.length; i++) {
     if (getMessageKey(messages[i]) !== renderedMessageKeys[i]) return false;
@@ -486,25 +550,42 @@ function appendNewMessages(messages) {
 function createMessageBubble(msg) {
   const sender = msg.sender || {};
   const isSent = isCurrentUser(sender);
+  const messageId = msg.id ? String(msg.id) : "";
+  const isEdited = msg.updatedAt && msg.createdAt && msg.updatedAt !== msg.createdAt;
   const bubble = document.createElement("div");
   bubble.className = "flex " + (isSent ? "justify-end" : "justify-start");
   bubble.dataset.messageKey = getMessageKey(msg);
+  if (messageId) bubble.dataset.messageId = messageId;
+
+  const actionsHtml = isSent && messageId && editingMessageId !== messageId
+    ? '<div class="chat-message-actions">' +
+      '<button type="button" class="chat-message-action-btn" data-action="edit" data-message-id="' +
+      escapeAttr(messageId) +
+      '">Modifier</button>' +
+      '<button type="button" class="chat-message-action-btn" data-action="delete" data-message-id="' +
+      escapeAttr(messageId) +
+      '">Supprimer</button>' +
+      "</div>"
+    : "";
 
   bubble.innerHTML =
+    '<div class="chat-bubble-wrap">' +
     '<div class="' +
     (isSent ? "chat-sent" : "chat-received") +
-    ' max-w-[85%] md:max-w-md px-4 py-3 rounded-2xl ' +
+    " chat-bubble-inner max-w-full px-4 py-3 rounded-2xl " +
     (isSent ? "rounded-br-sm" : "rounded-bl-sm") +
     '">' +
-    '<p class="text-sm leading-relaxed">' +
+    '<p class="text-sm leading-relaxed chat-message-content">' +
     escapeHtml(msg.content || "") +
     "</p>" +
+    (isEdited ? '<span class="chat-message-edited block text-right mt-1">Modifié</span>' : "") +
     '<span class="' +
     (isSent ? "opacity-70" : "chat-muted") +
     ' text-xs mt-2 block text-right">' +
     escapeHtml(formatMessageDate(msg.createdAt)) +
     "</span>" +
-    "</div>";
+    actionsHtml +
+    "</div></div>";
 
   return bubble;
 }
@@ -515,10 +596,10 @@ function renderMessages(messages) {
 
   container.innerHTML = "";
   renderedMessageKeys = [];
+  hideSearchEmptyState();
 
   if (messages.length === 0) {
-    container.innerHTML =
-      '<p class="chat-muted text-sm text-center py-8">Aucun message. Envoyez le premier !</p>';
+    showMessagesPanelState("empty");
     return;
   }
 
@@ -573,9 +654,10 @@ function applyMessageSearch() {
 
   const bubbles = container.querySelectorAll("[data-message-key]");
   let firstMatch = null;
+  let matchCount = 0;
 
   bubbles.forEach(function (bubble) {
-    const contentEl = bubble.querySelector("p.text-sm");
+    const contentEl = bubble.querySelector(".chat-message-content");
     if (!contentEl) return;
 
     const messageKey = bubble.dataset.messageKey;
@@ -594,12 +676,27 @@ function applyMessageSearch() {
     bubble.classList.toggle("hidden", !matches);
     contentEl.innerHTML = matches ? highlightSearchText(content, messageSearchQuery) : escapeHtml(content);
 
-    if (matches && !firstMatch) firstMatch = bubble;
+    if (matches) {
+      matchCount++;
+      if (!firstMatch) firstMatch = bubble;
+    }
   });
+
+  toggleSearchEmptyState(matchCount === 0 && messageSearchQuery.length > 0);
 
   if (firstMatch) {
     firstMatch.scrollIntoView({ behavior: "smooth", block: "center" });
   }
+}
+
+function toggleSearchEmptyState(show) {
+  const el = document.getElementById("messageSearchEmpty");
+  if (!el) return;
+  el.classList.toggle("hidden", !show);
+}
+
+function hideSearchEmptyState() {
+  toggleSearchEmptyState(false);
 }
 
 function highlightSearchText(text, query) {
@@ -626,6 +723,189 @@ function highlightSearchText(text, query) {
   }
 
   return result;
+}
+
+function buildChatStateHtml(type, options) {
+  const title = options.title || "";
+  const text = options.text || "";
+  const spinner = type === "loading" ? '<span class="chat-state-spinner" aria-hidden="true"></span>' : "";
+  const icon =
+    type === "empty"
+      ? '<svg class="chat-state-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>'
+      : type === "error"
+        ? '<svg class="chat-state-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>'
+        : "";
+
+  return (
+    '<div class="chat-state" data-state="' +
+    type +
+    '">' +
+    (spinner || icon) +
+    (title ? '<p class="chat-state-title">' + escapeHtml(title) + "</p>" : "") +
+    (text ? '<p class="chat-state-text">' + escapeHtml(text) + "</p>" : "") +
+    "</div>"
+  );
+}
+
+function showMessagesPanelState(type, customText) {
+  const container = document.getElementById("messagesContainer");
+  if (!container) return;
+
+  const presets = {
+    loading: {
+      title: "Chargement…",
+      text: "Récupération des messages",
+    },
+    empty: {
+      title: "Aucun message",
+      text: "Envoyez le premier message pour démarrer la conversation.",
+    },
+    error: {
+      title: "Erreur de chargement",
+      text: customText || "Impossible de charger les messages.",
+    },
+  };
+
+  container.innerHTML = buildChatStateHtml(type, presets[type] || { text: customText || "" });
+  renderedMessageKeys = [];
+  hideSearchEmptyState();
+}
+
+function initMessageActions() {
+  const container = document.getElementById("messagesContainer");
+  if (!container) return;
+
+  container.addEventListener("click", function (event) {
+    const target = event.target.closest("[data-action]");
+    if (!target) return;
+
+    const action = target.dataset.action;
+    const messageId = target.dataset.messageId;
+
+    if (action === "edit" && messageId) {
+      startEditMessage(messageId);
+      return;
+    }
+
+    if (action === "delete" && messageId) {
+      confirmDeleteMessage(messageId);
+      return;
+    }
+
+    if (action === "save-edit" && messageId) {
+      saveEditMessage(messageId);
+      return;
+    }
+
+    if (action === "cancel-edit") {
+      cancelEditMessage();
+    }
+  });
+}
+
+function findMessageBubble(messageId) {
+  const container = document.getElementById("messagesContainer");
+  if (!container) return null;
+  return container.querySelector('[data-message-id="' + messageId + '"]');
+}
+
+function startEditMessage(messageId) {
+  const message = currentMessages.find(function (item) {
+    return String(item.id) === String(messageId);
+  });
+  if (!message || !activeConversationId) return;
+
+  editingMessageId = String(messageId);
+  renderMessages(currentMessages);
+  const bubble = findMessageBubble(messageId);
+  if (!bubble) return;
+
+  const inner = bubble.querySelector(".chat-bubble-inner");
+  if (!inner) return;
+
+  inner.innerHTML =
+    '<textarea class="chat-edit-input" data-edit-input="1"></textarea>' +
+    '<div class="chat-message-actions" style="opacity:1">' +
+    '<button type="button" class="chat-message-action-btn" data-action="save-edit" data-message-id="' +
+    escapeAttr(messageId) +
+    '">Enregistrer</button>' +
+    '<button type="button" class="chat-message-action-btn" data-action="cancel-edit">Annuler</button>' +
+    "</div>";
+
+  const textarea = inner.querySelector("[data-edit-input]");
+  if (textarea) {
+    textarea.value = message.content || "";
+    textarea.focus();
+  }
+}
+
+function cancelEditMessage() {
+  editingMessageId = null;
+  renderMessages(currentMessages);
+  if (messageSearchQuery) applyMessageSearch();
+}
+
+async function saveEditMessage(messageId) {
+  const bubble = findMessageBubble(messageId);
+  const textarea = bubble && bubble.querySelector("[data-edit-input]");
+  const content = textarea ? textarea.value.trim() : "";
+
+  if (!content || !activeConversationId) {
+    showChatToast("Le message ne peut pas être vide.", true);
+    return;
+  }
+
+  try {
+    await Auth.apiRequest(
+      "/conversations/" + activeConversationId + "/messages/" + messageId,
+      {
+        method: "PATCH",
+        auth: true,
+        body: { content: content },
+      }
+    );
+    editingMessageId = null;
+    await loadMessages(activeConversationId);
+    await refreshChatData();
+    showChatToast("Message modifié.");
+  } catch (error) {
+    showChatToast(error.message || "Impossible de modifier le message.", true);
+  }
+}
+
+async function confirmDeleteMessage(messageId) {
+  if (!activeConversationId) return;
+  if (!globalThis.confirm("Supprimer ce message ?")) return;
+
+  try {
+    await Auth.apiRequest(
+      "/conversations/" + activeConversationId + "/messages/" + messageId,
+      {
+        method: "DELETE",
+        auth: true,
+      }
+    );
+    editingMessageId = null;
+    await loadMessages(activeConversationId);
+    await refreshChatData();
+    showChatToast("Message supprimé.");
+  } catch (error) {
+    showChatToast(error.message || "Impossible de supprimer le message.", true);
+  }
+}
+
+function showChatToast(message, isError) {
+  const toast = document.getElementById("chatToast");
+  if (!toast) return;
+
+  toast.textContent = message;
+  toast.classList.remove("hidden", "chat-toast--error");
+  if (isError) toast.classList.add("chat-toast--error");
+
+  if (chatToastTimer) clearTimeout(chatToastTimer);
+  chatToastTimer = setTimeout(function () {
+    toast.classList.add("hidden");
+  }, 3200);
 }
 
 function showEmptyChat() {
