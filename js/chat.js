@@ -39,6 +39,7 @@ let editingMessageId = null;
 let chatToastTimer = null;
 let unreadByConversation = {};
 let contextMenuMessageId = null;
+let previewReadyConversations = new Set();
 
 const REFRESH_INTERVAL_MS = 1500;
 
@@ -88,6 +89,7 @@ async function initChat(user) {
     await loadContacts({ showLoading: true });
     renderContactList();
     await refreshConversationPreviews();
+    renderContactList({ silent: true });
   } catch (error) {
     console.error(error);
   }
@@ -165,7 +167,17 @@ async function syncConversationPreview(conversationId) {
     }
   } catch (error) {
     // Ignorer les erreurs de prévisualisation en arrière-plan.
+  } finally {
+    markConversationPreviewReady(conversationId);
   }
+}
+
+function markConversationPreviewReady(conversationId) {
+  if (conversationId) previewReadyConversations.add(String(conversationId));
+}
+
+function isConversationPreviewReady(conversationId) {
+  return previewReadyConversations.has(String(conversationId));
 }
 
 async function loadContacts(options) {
@@ -193,6 +205,9 @@ async function loadContacts(options) {
     const nextConversations = Array.isArray(incoming) ? incoming.slice() : [];
     mergeConversationPreviews(nextConversations);
     conversations = nextConversations;
+    conversations.forEach(function (conv) {
+      if (getLastMessage(conv)) markConversationPreviewReady(conv.id);
+    });
     contactsLoadError = null;
   } catch (error) {
     contactsLoadError = error.message || "Impossible de charger les contacts.";
@@ -276,6 +291,7 @@ function getLastMessagePreview(conversation) {
   if (!conversation) return "Commencer la conversation";
   const last = getLastMessage(conversation);
   if (last && last.content) return last.content;
+  if (!isConversationPreviewReady(conversation.id)) return "Chargement…";
   return "Aucun message";
 }
 
@@ -459,9 +475,11 @@ function updateContactListItem(btn, user, conversation, isActive) {
   const previewEl = btn.querySelector("[data-contact-preview]");
   if (previewEl) {
     if (previewEl.textContent !== preview) previewEl.textContent = preview;
-    previewEl.classList.toggle("chat-muted", !unread);
+    const isLoadingPreview = preview === "Chargement…";
+    previewEl.classList.toggle("chat-muted", !unread || isLoadingPreview);
     previewEl.classList.toggle("chat-unread-preview", unread);
     previewEl.classList.toggle("font-semibold", unread);
+    previewEl.classList.toggle("chat-preview-loading", isLoadingPreview);
   }
 }
 
@@ -555,6 +573,8 @@ async function loadMessages(conversationId, options) {
       markConversationAsRead(conversationId);
     }
 
+    markConversationPreviewReady(conversationId);
+
     if (silent && activeConversationId === conversationId && syncRenderedMessages(list)) {
       if (messageSearchQuery) applyMessageSearch();
       return;
@@ -618,12 +638,24 @@ function createMessageBubble(msg) {
   bubble.dataset.messageKey = getMessageKey(msg);
   if (messageId) bubble.dataset.messageId = messageId;
 
+  const menuBtn =
+    isSent && messageId && editingMessageId !== messageId
+      ? '<button type="button" class="chat-message-more-btn" data-action="open-menu" aria-label="Options du message">' +
+        '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+        '<circle cx="12" cy="5" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="12" cy="19" r="1.75"/>' +
+        "</svg></button>"
+      : "";
+
   bubble.innerHTML =
+    '<div class="chat-bubble-row' +
+    (isSent ? " chat-bubble-row--sent" : "") +
+    '">' +
+    menuBtn +
     '<div class="chat-bubble-wrap">' +
     '<div class="' +
     (isSent ? "chat-sent" : "chat-received") +
     " chat-bubble-inner max-w-full px-4 py-3 rounded-2xl " +
-    (isSent ? "rounded-br-sm" + (messageId ? " chat-message-own" : "") : "rounded-bl-sm") +
+    (isSent ? "rounded-br-sm" : "rounded-bl-sm") +
     '">' +
     '<p class="text-sm leading-relaxed chat-message-content">' +
     escapeHtml(msg.content || "") +
@@ -634,7 +666,7 @@ function createMessageBubble(msg) {
     ' text-xs mt-2 block text-right">' +
     escapeHtml(formatMessageDate(msg.createdAt)) +
     "</span>" +
-    "</div></div>";
+    "</div></div></div>";
 
   return bubble;
 }
@@ -830,6 +862,16 @@ function initMessageActions() {
     if (editTarget) {
       const action = editTarget.dataset.action;
       const messageId = editTarget.dataset.messageId;
+
+      if (action === "open-menu" && !editingMessageId) {
+        const bubble = editTarget.closest("[data-message-id]");
+        if (bubble && bubble.dataset.messageId) {
+          event.stopPropagation();
+          openMessageContextMenu(bubble, event, editTarget);
+          return;
+        }
+      }
+
       if (action === "save-edit" && messageId) {
         saveEditMessage(messageId);
         return;
@@ -841,17 +883,6 @@ function initMessageActions() {
     }
 
     if (event.target.closest("#messageContextMenu")) return;
-
-    const ownBubble = event.target.closest(".chat-message-own");
-    if (ownBubble && !event.target.closest("[data-edit-input]") && !editingMessageId) {
-      const bubble = ownBubble.closest("[data-message-id]");
-      if (bubble && bubble.dataset.messageId) {
-        event.stopPropagation();
-        openMessageContextMenu(bubble, event);
-        return;
-      }
-    }
-
     closeMessageContextMenu();
   });
 
@@ -885,7 +916,10 @@ function initMessageActions() {
   });
 
   document.addEventListener("click", function (event) {
-    if (!event.target.closest("#messageContextMenu") && !event.target.closest(".chat-message-own")) {
+    if (
+      !event.target.closest("#messageContextMenu") &&
+      !event.target.closest(".chat-message-more-btn")
+    ) {
       closeMessageContextMenu();
     }
   });
@@ -893,7 +927,7 @@ function initMessageActions() {
   container.addEventListener("scroll", closeMessageContextMenu, { passive: true });
 }
 
-function openMessageContextMenu(bubble, event) {
+function openMessageContextMenu(bubble, event, anchorEl) {
   const menu = document.getElementById("messageContextMenu");
   const chatArea = document.getElementById("chatActiveArea");
   if (!menu || !chatArea) return;
@@ -901,14 +935,16 @@ function openMessageContextMenu(bubble, event) {
   contextMenuMessageId = bubble.dataset.messageId;
   hideMessageDeleteConfirm();
 
-  const rect = bubble.getBoundingClientRect();
+  const anchor = anchorEl || bubble;
+  const rect = anchor.getBoundingClientRect();
   const areaRect = chatArea.getBoundingClientRect();
   const menuWidth = 152;
-  let left = rect.right - areaRect.left - menuWidth;
-  let top = rect.top - areaRect.top - 8;
+  let left = rect.left - areaRect.left - menuWidth - 4;
+  let top = rect.top - areaRect.top;
 
-  if (left < 8) left = 8;
-  if (top < 8) top = rect.bottom - areaRect.top + 8;
+  if (left < 8) left = rect.right - areaRect.left + 4;
+  if (top + 120 > areaRect.height) top = areaRect.height - 128;
+  if (top < 8) top = 8;
 
   menu.style.left = left + "px";
   menu.style.top = top + "px";
