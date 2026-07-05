@@ -37,6 +37,8 @@ let contactsLoadError = null;
 let messagesLoading = false;
 let editingMessageId = null;
 let chatToastTimer = null;
+let unreadByConversation = {};
+let contextMenuMessageId = null;
 
 const REFRESH_INTERVAL_MS = 1500;
 
@@ -75,7 +77,6 @@ async function initChat(user) {
         console.error(error);
       } finally {
         messageInput.disabled = false;
-        messageInput.focus();
       }
     });
   }
@@ -86,7 +87,7 @@ async function initChat(user) {
   try {
     await loadContacts({ showLoading: true });
     renderContactList();
-    prefetchMissingPreviews();
+    await refreshConversationPreviews();
   } catch (error) {
     console.error(error);
   }
@@ -119,7 +120,7 @@ function stopAutoRefresh() {
 async function refreshChatData() {
   try {
     await loadContacts({ silent: true });
-    prefetchMissingPreviews();
+    await refreshConversationPreviews();
     if (activeConversationId) {
       await loadMessages(activeConversationId, { silent: true });
     }
@@ -129,19 +130,42 @@ async function refreshChatData() {
   }
 }
 
-function prefetchMissingPreviews() {
-  conversations.forEach(function (conv) {
-    if (getLastMessage(conv)) return;
+async function refreshConversationPreviews() {
+  if (conversations.length === 0) return;
 
-    Auth.apiRequest("/conversations/" + conv.id + "/messages", { auth: true })
-      .then(function (res) {
-        const messages = res.data?.messages || res.data || [];
-        if (!Array.isArray(messages) || messages.length === 0) return;
-        updateConversationLastMessage(conv.id, messages[messages.length - 1]);
-        renderContactList({ silent: true });
+  await Promise.all(
+    conversations.map(function (conv) {
+      if (activeConversationId && String(conv.id) === String(activeConversationId)) {
+        return Promise.resolve();
+      }
+      return syncConversationPreview(conv.id);
+    })
+  );
+}
+
+async function syncConversationPreview(conversationId) {
+  try {
+    const res = await Auth.apiRequest("/conversations/" + conversationId + "/messages", {
+      auth: true,
+    });
+    const messages = res.data?.messages || res.data || [];
+    if (!Array.isArray(messages) || messages.length === 0) return;
+
+    const latest = messages[messages.length - 1];
+    const previous = getLastMessage(
+      conversations.find(function (conv) {
+        return String(conv.id) === String(conversationId);
       })
-      .catch(function () {});
-  });
+    );
+    const previousKey = previous ? getMessageKey(previous) : "";
+    updateConversationLastMessage(conversationId, latest);
+
+    if (getMessageKey(latest) !== previousKey && !isCurrentUser(latest.sender || {})) {
+      unreadByConversation[String(conversationId)] = getMessageKey(latest);
+    }
+  } catch (error) {
+    // Ignorer les erreurs de prévisualisation en arrière-plan.
+  }
 }
 
 async function loadContacts(options) {
@@ -209,7 +233,14 @@ function mergeConversationPreviews(incomingConversations) {
     const incomingLast = getLastMessage(incoming);
     const existingLast = existing ? getLastMessage(existing) : null;
 
-    if (existingLast && (!incomingLast || getConversationTimestamp({ lastMessage: existingLast }) > getConversationTimestamp({ lastMessage: incomingLast }))) {
+    if (incomingLast && existingLast) {
+      if (
+        getConversationTimestamp({ lastMessage: existingLast }) >
+        getConversationTimestamp({ lastMessage: incomingLast })
+      ) {
+        incoming.lastMessage = existingLast;
+      }
+    } else if (!incomingLast && existingLast) {
       incoming.lastMessage = existingLast;
     }
   });
@@ -228,6 +259,17 @@ function updateConversationLastMessage(conversationId, message) {
   if (conversation) {
     conversation.lastMessage = message;
   }
+}
+
+function hasUnreadConversation(conversation) {
+  if (!conversation) return false;
+  if (activeConversationId && String(conversation.id) === String(activeConversationId)) return false;
+  return Boolean(unreadByConversation[String(conversation.id)]);
+}
+
+function markConversationAsRead(conversationId) {
+  if (!conversationId) return;
+  delete unreadByConversation[String(conversationId)];
 }
 
 function getLastMessagePreview(conversation) {
@@ -390,8 +432,10 @@ function updateContactListItem(btn, user, conversation, isActive) {
   const preview = getLastMessagePreview(conversation);
   const time = getLastMessageTime(conversation);
   const avatarUrl = getAvatarUrl(user);
+  const unread = hasUnreadConversation(conversation);
 
   btn.classList.toggle("chat-item-active", !!isActive);
+  btn.classList.toggle("chat-contact-unread", unread);
 
   const img = btn.querySelector("[data-contact-avatar]");
   if (img) {
@@ -400,13 +444,25 @@ function updateContactListItem(btn, user, conversation, isActive) {
   }
 
   const nameEl = btn.querySelector("[data-contact-name]");
-  if (nameEl && nameEl.textContent !== name) nameEl.textContent = name;
+  if (nameEl) {
+    if (nameEl.textContent !== name) nameEl.textContent = name;
+    nameEl.classList.toggle("font-bold", unread);
+  }
 
   const timeEl = btn.querySelector("[data-contact-time]");
-  if (timeEl && timeEl.textContent !== time) timeEl.textContent = time;
+  if (timeEl) {
+    if (timeEl.textContent !== time) timeEl.textContent = time;
+    timeEl.classList.toggle("chat-muted", !unread);
+    timeEl.classList.toggle("font-semibold", unread);
+  }
 
   const previewEl = btn.querySelector("[data-contact-preview]");
-  if (previewEl && previewEl.textContent !== preview) previewEl.textContent = preview;
+  if (previewEl) {
+    if (previewEl.textContent !== preview) previewEl.textContent = preview;
+    previewEl.classList.toggle("chat-muted", !unread);
+    previewEl.classList.toggle("chat-unread-preview", unread);
+    previewEl.classList.toggle("font-semibold", unread);
+  }
 }
 
 function syncContactListOrder(nav, sortedUsers) {
@@ -442,6 +498,7 @@ async function openChatWithUser(user) {
     updateContactInfo(user);
     renderedMessageKeys = [];
     await loadMessages(activeConversationId);
+    markConversationAsRead(activeConversationId);
     renderContactList({ silent: true });
 
     const viewChat = document.getElementById("view-chat");
@@ -494,7 +551,11 @@ async function loadMessages(conversationId, options) {
       updateConversationLastMessage(conversationId, list[list.length - 1]);
     }
 
-    if (silent && activeConversationId === conversationId && appendNewMessages(list)) {
+    if (activeConversationId === conversationId) {
+      markConversationAsRead(conversationId);
+    }
+
+    if (silent && activeConversationId === conversationId && syncRenderedMessages(list)) {
       if (messageSearchQuery) applyMessageSearch();
       return;
     }
@@ -515,7 +576,7 @@ function getMessageKey(message) {
   return String(message.createdAt || "") + "|" + String(message.content || "");
 }
 
-function appendNewMessages(messages) {
+function syncRenderedMessages(messages) {
   const container = document.getElementById("messagesContainer");
   if (!container) return false;
 
@@ -557,23 +618,12 @@ function createMessageBubble(msg) {
   bubble.dataset.messageKey = getMessageKey(msg);
   if (messageId) bubble.dataset.messageId = messageId;
 
-  const actionsHtml = isSent && messageId && editingMessageId !== messageId
-    ? '<div class="chat-message-actions">' +
-      '<button type="button" class="chat-message-action-btn" data-action="edit" data-message-id="' +
-      escapeAttr(messageId) +
-      '">Modifier</button>' +
-      '<button type="button" class="chat-message-action-btn" data-action="delete" data-message-id="' +
-      escapeAttr(messageId) +
-      '">Supprimer</button>' +
-      "</div>"
-    : "";
-
   bubble.innerHTML =
     '<div class="chat-bubble-wrap">' +
     '<div class="' +
     (isSent ? "chat-sent" : "chat-received") +
     " chat-bubble-inner max-w-full px-4 py-3 rounded-2xl " +
-    (isSent ? "rounded-br-sm" : "rounded-bl-sm") +
+    (isSent ? "rounded-br-sm" + (messageId ? " chat-message-own" : "") : "rounded-bl-sm") +
     '">' +
     '<p class="text-sm leading-relaxed chat-message-content">' +
     escapeHtml(msg.content || "") +
@@ -584,7 +634,6 @@ function createMessageBubble(msg) {
     ' text-xs mt-2 block text-right">' +
     escapeHtml(formatMessageDate(msg.createdAt)) +
     "</span>" +
-    actionsHtml +
     "</div></div>";
 
   return bubble;
@@ -773,34 +822,121 @@ function showMessagesPanelState(type, customText) {
 
 function initMessageActions() {
   const container = document.getElementById("messagesContainer");
-  if (!container) return;
+  const menu = document.getElementById("messageContextMenu");
+  if (!container || !menu) return;
 
   container.addEventListener("click", function (event) {
+    const editTarget = event.target.closest("[data-action]");
+    if (editTarget) {
+      const action = editTarget.dataset.action;
+      const messageId = editTarget.dataset.messageId;
+      if (action === "save-edit" && messageId) {
+        saveEditMessage(messageId);
+        return;
+      }
+      if (action === "cancel-edit") {
+        cancelEditMessage();
+        return;
+      }
+    }
+
+    if (event.target.closest("#messageContextMenu")) return;
+
+    const ownBubble = event.target.closest(".chat-message-own");
+    if (ownBubble && !event.target.closest("[data-edit-input]") && !editingMessageId) {
+      const bubble = ownBubble.closest("[data-message-id]");
+      if (bubble && bubble.dataset.messageId) {
+        event.stopPropagation();
+        openMessageContextMenu(bubble, event);
+        return;
+      }
+    }
+
+    closeMessageContextMenu();
+  });
+
+  menu.addEventListener("click", function (event) {
     const target = event.target.closest("[data-action]");
-    if (!target) return;
+    if (!target || !contextMenuMessageId) return;
 
     const action = target.dataset.action;
-    const messageId = target.dataset.messageId;
 
-    if (action === "edit" && messageId) {
-      startEditMessage(messageId);
+    if (action === "edit") {
+      closeMessageContextMenu();
+      startEditMessage(contextMenuMessageId);
       return;
     }
 
-    if (action === "delete" && messageId) {
+    if (action === "delete") {
+      showMessageDeleteConfirm();
+      return;
+    }
+
+    if (action === "confirm-delete") {
+      const messageId = contextMenuMessageId;
+      closeMessageContextMenu();
       confirmDeleteMessage(messageId);
       return;
     }
 
-    if (action === "save-edit" && messageId) {
-      saveEditMessage(messageId);
-      return;
-    }
-
-    if (action === "cancel-edit") {
-      cancelEditMessage();
+    if (action === "cancel-delete") {
+      hideMessageDeleteConfirm();
     }
   });
+
+  document.addEventListener("click", function (event) {
+    if (!event.target.closest("#messageContextMenu") && !event.target.closest(".chat-message-own")) {
+      closeMessageContextMenu();
+    }
+  });
+
+  container.addEventListener("scroll", closeMessageContextMenu, { passive: true });
+}
+
+function openMessageContextMenu(bubble, event) {
+  const menu = document.getElementById("messageContextMenu");
+  const chatArea = document.getElementById("chatActiveArea");
+  if (!menu || !chatArea) return;
+
+  contextMenuMessageId = bubble.dataset.messageId;
+  hideMessageDeleteConfirm();
+
+  const rect = bubble.getBoundingClientRect();
+  const areaRect = chatArea.getBoundingClientRect();
+  const menuWidth = 152;
+  let left = rect.right - areaRect.left - menuWidth;
+  let top = rect.top - areaRect.top - 8;
+
+  if (left < 8) left = 8;
+  if (top < 8) top = rect.bottom - areaRect.top + 8;
+
+  menu.style.left = left + "px";
+  menu.style.top = top + "px";
+  menu.classList.remove("hidden");
+  menu.setAttribute("aria-hidden", "false");
+}
+
+function closeMessageContextMenu() {
+  const menu = document.getElementById("messageContextMenu");
+  if (!menu) return;
+  menu.classList.add("hidden");
+  menu.setAttribute("aria-hidden", "true");
+  contextMenuMessageId = null;
+  hideMessageDeleteConfirm();
+}
+
+function showMessageDeleteConfirm() {
+  const actions = document.getElementById("messageContextMenuActions");
+  const confirm = document.getElementById("messageContextMenuConfirm");
+  if (actions) actions.classList.add("hidden");
+  if (confirm) confirm.classList.remove("hidden");
+}
+
+function hideMessageDeleteConfirm() {
+  const actions = document.getElementById("messageContextMenuActions");
+  const confirm = document.getElementById("messageContextMenuConfirm");
+  if (actions) actions.classList.remove("hidden");
+  if (confirm) confirm.classList.add("hidden");
 }
 
 function findMessageBubble(messageId) {
@@ -875,7 +1011,6 @@ async function saveEditMessage(messageId) {
 
 async function confirmDeleteMessage(messageId) {
   if (!activeConversationId) return;
-  if (!globalThis.confirm("Supprimer ce message ?")) return;
 
   try {
     await Auth.apiRequest(

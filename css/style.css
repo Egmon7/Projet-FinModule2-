@@ -231,37 +231,62 @@ button.chat-contact-btn:hover {
   position: relative;
 }
 
-.chat-message-actions {
-  display: flex;
-  gap: 0.35rem;
-  justify-content: flex-end;
-  margin-top: 0.35rem;
-  opacity: 0;
-  transition: opacity 0.15s ease;
+.chat-bubble-inner.chat-sent.chat-message-own {
+  cursor: pointer;
 }
 
-.chat-bubble-wrap:hover .chat-message-actions,
-.chat-bubble-wrap:focus-within .chat-message-actions {
-  opacity: 1;
+.chat-message-menu {
+  position: absolute;
+  z-index: 40;
+  min-width: 9.5rem;
+  padding: 0.35rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--chat-border);
+  background-color: var(--chat-surface);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
 }
 
-@media (hover: none) {
-  .chat-message-actions {
-    opacity: 1;
-  }
-}
-
-.chat-message-action-btn {
-  font-size: 0.7rem;
-  padding: 0.2rem 0.45rem;
-  border-radius: 0.45rem;
-  background-color: var(--chat-active);
+.chat-message-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
   color: var(--chat-text);
-  transition: opacity 0.15s ease;
+  transition: background-color 0.15s ease;
 }
 
-.chat-message-action-btn:hover {
-  opacity: 0.85;
+.chat-message-menu-item:hover {
+  background-color: var(--chat-active);
+}
+
+.chat-message-menu-item--danger {
+  color: #dc2626;
+}
+
+.chat-message-menu-confirm-text {
+  font-size: 0.8125rem;
+  padding: 0.45rem 0.75rem 0.35rem;
+  color: var(--chat-muted);
+}
+
+.chat-contact-unread [data-contact-name] {
+  font-weight: 700;
+}
+
+.chat-unread-preview {
+  color: var(--chat-text) !important;
+  font-weight: 600;
+}
+
+.chat-contact-unread [data-contact-time] {
+  font-weight: 600;
+  color: var(--chat-text);
+}
+
+.chat-message-actions {
+  display: none;
 }
 
 .chat-edit-input {

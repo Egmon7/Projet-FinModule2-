@@ -83,7 +83,7 @@
         <p class="text-sm">Choisissez un contact dans la liste pour ouvrir ou démarrer une conversation.</p>
       </div>
 
-      <div id="chatActiveArea" class="hidden flex flex-col flex-1 min-h-0">
+      <div id="chatActiveArea" class="hidden flex flex-col flex-1 min-h-0 relative">
 
         <input type="checkbox" id="toggle-search" class="chat-toggle">
         <input type="checkbox" id="toggle-profile-info" class="chat-toggle">
@@ -162,6 +162,18 @@
           Aucun résultat trouvé pour cette recherche.
         </p>
         <div id="messagesContainer" class="flex-1 overflow-y-auto chat-scroll px-4 md:px-6 py-6 space-y-4">
+        </div>
+
+        <div id="messageContextMenu" class="chat-message-menu hidden" role="menu" aria-hidden="true">
+          <div id="messageContextMenuActions">
+            <button type="button" class="chat-message-menu-item" data-action="edit">Modifier</button>
+            <button type="button" class="chat-message-menu-item chat-message-menu-item--danger" data-action="delete">Supprimer</button>
+          </div>
+          <div id="messageContextMenuConfirm" class="hidden">
+            <p class="chat-message-menu-confirm-text">Supprimer ce message ?</p>
+            <button type="button" class="chat-message-menu-item chat-message-menu-item--danger" data-action="confirm-delete">Confirmer</button>
+            <button type="button" class="chat-message-menu-item" data-action="cancel-delete">Annuler</button>
+          </div>
         </div>
 
         <p id="chatToast" class="chat-toast hidden" role="status"></p>
