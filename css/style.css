@@ -329,6 +329,16 @@ button.chat-contact-btn:hover {
   color: var(--chat-text);
 }
 
+.chat-delete-conversation-btn {
+  color: #dc2626;
+  background-color: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+}
+
+.chat-delete-conversation-btn:hover {
+  background-color: rgba(220, 38, 38, 0.14);
+}
+
 .chat-edit-actions {
   display: flex;
   gap: 0.4rem;

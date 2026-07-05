@@ -42,7 +42,6 @@ let contextMenuMessageId = null;
 let previewReadyConversations = new Set();
 
 const REFRESH_INTERVAL_MS = 1500;
-const MESSAGE_OVERRIDES_KEY = "egmon_message_overrides";
 
 function isCurrentUser(user) {
   if (!user || !currentUser) return false;
@@ -85,6 +84,7 @@ async function initChat(user) {
 
   initMessageSearch();
   initMessageActions();
+  initContactInfoActions();
 
   try {
     await loadContacts({ showLoading: true });
@@ -546,6 +546,62 @@ function updateContactInfo(user) {
   setText("contactInfoBio", user.bio || "—");
   setAttr("contactInfoAvatar", "src", getAvatarUrl(user));
   setAttr("contactInfoAvatar", "alt", name);
+
+  const conversation = getConversationWithUser(user.id);
+  const deleteWrap = document.getElementById("deleteConversationWrap");
+  if (deleteWrap) {
+    deleteWrap.classList.toggle("hidden", !conversation);
+  }
+}
+
+function initContactInfoActions() {
+  const deleteBtn = document.getElementById("deleteConversationBtn");
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", deleteActiveConversation);
+  }
+}
+
+async function deleteActiveConversation() {
+  if (!activeConversationId) return;
+
+  if (!globalThis.confirm("Supprimer cette conversation ? Tous les messages seront effacés.")) {
+    return;
+  }
+
+  const conversationId = activeConversationId;
+
+  try {
+    await Auth.apiRequest("/conversations/" + conversationId, {
+      method: "DELETE",
+      auth: true,
+    });
+
+    conversations = conversations.filter(function (conv) {
+      return String(conv.id) !== String(conversationId);
+    });
+    delete unreadByConversation[String(conversationId)];
+    previewReadyConversations.delete(String(conversationId));
+
+    activeConversationId = null;
+    activeContact = null;
+    currentMessages = [];
+    editingMessageId = null;
+    renderedMessageKeys = [];
+    lastContactListOrderKey = "";
+
+    closeMessageSearch();
+    closeContactInfoPanel();
+    showEmptyChat();
+    await refreshChatData();
+    showChatToast("Conversation supprimée.");
+  } catch (error) {
+    showChatToast(error.message || "Impossible de supprimer la conversation.", true);
+  }
+}
+
+function closeContactInfoPanel() {
+  const toggle = document.getElementById("toggle-profile-info");
+  if (toggle) toggle.checked = false;
 }
 
 async function loadMessages(conversationId, options) {
@@ -564,8 +620,7 @@ async function loadMessages(conversationId, options) {
     });
 
     const messages = res.data?.messages || res.data || [];
-    const rawList = Array.isArray(messages) ? messages : [];
-    const list = applyLocalMessageOverrides(rawList, conversationId);
+    const list = Array.isArray(messages) ? messages : [];
     currentMessages = list;
 
     if (list.length > 0) {
@@ -635,9 +690,7 @@ function createMessageBubble(msg) {
   const sender = msg.sender || {};
   const isSent = isCurrentUser(sender);
   const messageId = msg.id ? String(msg.id) : "";
-  const isLocallyEdited = Boolean(msg._localEdited);
-  const isEdited =
-    isLocallyEdited || (msg.updatedAt && msg.createdAt && msg.updatedAt !== msg.createdAt);
+  const isEdited = msg.updatedAt && msg.createdAt && msg.updatedAt !== msg.createdAt;
   const isEditing = editingMessageId && messageId && editingMessageId === messageId;
   const bubble = document.createElement("div");
   bubble.className = "flex " + (isSent ? "justify-end" : "justify-start");
@@ -1025,58 +1078,6 @@ function cancelEditMessage() {
   if (messageSearchQuery) applyMessageSearch();
 }
 
-function getMessageOverrideKey(conversationId, messageId) {
-  return String(conversationId) + ":" + String(messageId);
-}
-
-function readMessageOverrides() {
-  try {
-    return JSON.parse(localStorage.getItem(MESSAGE_OVERRIDES_KEY) || "{}");
-  } catch (error) {
-    return {};
-  }
-}
-
-function writeMessageOverrides(overrides) {
-  localStorage.setItem(MESSAGE_OVERRIDES_KEY, JSON.stringify(overrides));
-}
-
-function setLocalMessageOverride(conversationId, messageId, patch) {
-  const overrides = readMessageOverrides();
-  const key = getMessageOverrideKey(conversationId, messageId);
-  overrides[key] = Object.assign({}, overrides[key] || {}, patch);
-  writeMessageOverrides(overrides);
-}
-
-function applyLocalMessageOverrides(messages, conversationId) {
-  const overrides = readMessageOverrides();
-
-  return messages
-    .filter(function (message) {
-      if (!message.id) return true;
-      const key = getMessageOverrideKey(conversationId, message.id);
-      return !(overrides[key] && overrides[key].deleted);
-    })
-    .map(function (message) {
-      if (!message.id) return message;
-      const key = getMessageOverrideKey(conversationId, message.id);
-      const override = overrides[key];
-      if (!override || !override.content) return message;
-      return Object.assign({}, message, {
-        content: override.content,
-        updatedAt: override.updatedAt || message.updatedAt,
-        _localEdited: true,
-      });
-    });
-}
-
-function isApiRouteMissing(error) {
-  if (!error) return false;
-  if (error.status === 404 || error.status === 405) return true;
-  if (error.message && /not found/i.test(error.message)) return true;
-  return false;
-}
-
 async function saveEditMessage(messageId) {
   const bubble = findMessageBubble(messageId);
   const textarea = bubble && bubble.querySelector("[data-edit-input]");
@@ -1088,31 +1089,16 @@ async function saveEditMessage(messageId) {
   }
 
   try {
-    await Auth.apiRequest(
-      "/conversations/" + activeConversationId + "/messages/" + messageId,
-      {
-        method: "PATCH",
-        auth: true,
-        body: { content: content },
-      }
-    );
+    await Auth.apiRequest("/messages/" + messageId, {
+      method: "PATCH",
+      auth: true,
+      body: { content: content },
+    });
     editingMessageId = null;
-    await loadMessages(activeConversationId, { silent: true });
+    await loadMessages(activeConversationId, { silent: true, force: true });
     await refreshChatData();
     showChatToast("Message modifié.");
   } catch (error) {
-    if (isApiRouteMissing(error)) {
-      setLocalMessageOverride(activeConversationId, messageId, {
-        content: content,
-        updatedAt: new Date().toISOString(),
-        deleted: false,
-      });
-      editingMessageId = null;
-      await loadMessages(activeConversationId, { silent: true });
-      await refreshChatData();
-      showChatToast("Message modifié.");
-      return;
-    }
     showChatToast(error.message || "Impossible de modifier le message.", true);
   }
 }
@@ -1121,26 +1107,15 @@ async function confirmDeleteMessage(messageId) {
   if (!activeConversationId) return;
 
   try {
-    await Auth.apiRequest(
-      "/conversations/" + activeConversationId + "/messages/" + messageId,
-      {
-        method: "DELETE",
-        auth: true,
-      }
-    );
+    await Auth.apiRequest("/messages/" + messageId, {
+      method: "DELETE",
+      auth: true,
+    });
     editingMessageId = null;
-    await loadMessages(activeConversationId, { silent: true });
+    await loadMessages(activeConversationId, { silent: true, force: true });
     await refreshChatData();
     showChatToast("Message supprimé.");
   } catch (error) {
-    if (isApiRouteMissing(error)) {
-      setLocalMessageOverride(activeConversationId, messageId, { deleted: true });
-      editingMessageId = null;
-      await loadMessages(activeConversationId, { silent: true });
-      await refreshChatData();
-      showChatToast("Message supprimé.");
-      return;
-    }
     showChatToast(error.message || "Impossible de supprimer le message.", true);
   }
 }
