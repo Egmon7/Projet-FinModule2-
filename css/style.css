@@ -371,7 +371,8 @@ button.chat-contact-btn:hover {
   border: 1px solid var(--chat-border);
   border-radius: 0.75rem;
   padding: 0.5rem 0.65rem;
-  font-size: 0.875rem;
+  font-size: 1rem;
+  line-height: 1.4;
   color: inherit;
   outline: none;
 }
@@ -496,6 +497,8 @@ button.chat-contact-btn:hover {
   border: 1px solid var(--chat-border);
   color: var(--chat-text);
   outline: none;
+  font-size: 1rem;
+  line-height: 1.4;
 }
 
 .bio-edit-input:focus {
@@ -596,4 +599,14 @@ button.chat-contact-btn:hover {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* iOS Safari : pas de zoom auto si font-size >= 16px sur les champs */
+@media (max-width: 767px) {
+  .chat-app input[type="text"],
+  .chat-app input[type="search"],
+  .chat-app textarea {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
 }

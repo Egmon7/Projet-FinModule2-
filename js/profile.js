@@ -101,38 +101,49 @@ function initBioEditor() {
 }
 
 async function updateUserBio(bio) {
-  const cached = Auth.getUser();
-  if (!cached || !cached.id) {
-    throw new Error("Profil introuvable.");
-  }
-
-  const endpoint = "/users/" + cached.id;
   const body = { bio: bio };
+  const candidates = [
+    { method: "PATCH", path: "/auth/me" },
+    { method: "PATCH", path: "/users/me" },
+    { method: "PUT", path: "/auth/me" },
+    { method: "PUT", path: "/users/me" },
+  ];
 
-  try {
-    await Auth.apiRequest(endpoint, {
-      method: "PATCH",
-      auth: true,
-      body: body,
-    });
-  } catch (error) {
-    if (error.status === 404 || error.status === 405) {
-      await Auth.apiRequest(endpoint, {
-        method: "PUT",
+  let response = null;
+  let lastError = null;
+
+  for (let i = 0; i < candidates.length; i++) {
+    const candidate = candidates[i];
+    try {
+      response = await Auth.apiRequest(candidate.path, {
+        method: candidate.method,
         auth: true,
         body: body,
       });
-    } else {
-      throw error;
+      break;
+    } catch (error) {
+      lastError = error;
+      if (error.status !== 404 && error.status !== 405) {
+        throw error;
+      }
     }
   }
 
+  if (!response) {
+    throw lastError || new Error("Impossible d'enregistrer la bio.");
+  }
+
+  const user = response.data?.user || response.data;
+  if (user && user.id) {
+    return user;
+  }
+
   const meRes = await Auth.apiRequest("/auth/me", { auth: true });
-  const user = meRes.data?.user || meRes.data;
-  if (!user) {
+  const refreshed = meRes.data?.user || meRes.data;
+  if (!refreshed) {
     throw new Error("Impossible de recharger le profil.");
   }
-  return user;
+  return refreshed;
 }
 
 function openBioModal() {
