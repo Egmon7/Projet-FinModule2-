@@ -168,6 +168,13 @@ button.chat-contact-btn:hover {
   display: flex;
 }
 
+.chat-search-highlight {
+  background-color: rgba(250, 204, 21, 0.45);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
 .profile-info-panel {
   display: none;
   background-color: var(--chat-surface);

@@ -30,6 +30,8 @@ let activeConversationId = null;
 let refreshTimer = null;
 let renderedMessageKeys = [];
 let lastContactListOrderKey = "";
+let currentMessages = [];
+let messageSearchQuery = "";
 
 const REFRESH_INTERVAL_MS = 1500;
 
@@ -76,6 +78,7 @@ async function initChat(user) {
   await refreshChatData();
   showEmptyChat();
   startAutoRefresh();
+  initMessageSearch();
 
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) {
@@ -370,6 +373,7 @@ function syncContactListOrder(nav, sortedUsers) {
 async function openChatWithUser(user) {
   if (isCurrentUser(user)) return;
 
+  closeMessageSearch();
   activeContact = user;
   let conversation = getConversationWithUser(user.id);
 
@@ -430,12 +434,14 @@ async function loadMessages(conversationId, options) {
 
   const messages = res.data?.messages || res.data || [];
   const list = Array.isArray(messages) ? messages : [];
+  currentMessages = list;
 
   if (list.length > 0) {
     updateConversationLastMessage(conversationId, list[list.length - 1]);
   }
 
   if (silent && activeConversationId === conversationId && appendNewMessages(list)) {
+    if (messageSearchQuery) applyMessageSearch();
     return;
   }
 
@@ -522,6 +528,104 @@ function renderMessages(messages) {
   });
 
   container.scrollTop = container.scrollHeight;
+
+  if (messageSearchQuery) applyMessageSearch();
+}
+
+function initMessageSearch() {
+  const searchInput = document.getElementById("messageSearchInput");
+  const toggleSearch = document.getElementById("toggle-search");
+
+  if (searchInput) {
+    searchInput.addEventListener("input", function () {
+      messageSearchQuery = searchInput.value.trim().toLowerCase();
+      applyMessageSearch();
+    });
+  }
+
+  if (toggleSearch) {
+    toggleSearch.addEventListener("change", function () {
+      if (toggleSearch.checked && searchInput) {
+        searchInput.focus();
+        return;
+      }
+      clearMessageSearch();
+    });
+  }
+}
+
+function closeMessageSearch() {
+  const toggleSearch = document.getElementById("toggle-search");
+  if (toggleSearch) toggleSearch.checked = false;
+  clearMessageSearch();
+}
+
+function clearMessageSearch() {
+  messageSearchQuery = "";
+  const searchInput = document.getElementById("messageSearchInput");
+  if (searchInput) searchInput.value = "";
+  applyMessageSearch();
+}
+
+function applyMessageSearch() {
+  const container = document.getElementById("messagesContainer");
+  if (!container) return;
+
+  const bubbles = container.querySelectorAll("[data-message-key]");
+  let firstMatch = null;
+
+  bubbles.forEach(function (bubble) {
+    const contentEl = bubble.querySelector("p.text-sm");
+    if (!contentEl) return;
+
+    const messageKey = bubble.dataset.messageKey;
+    const message = currentMessages.find(function (item) {
+      return getMessageKey(item) === messageKey;
+    });
+    const content = message ? message.content || "" : contentEl.textContent;
+
+    if (!messageSearchQuery) {
+      bubble.classList.remove("hidden");
+      contentEl.innerHTML = escapeHtml(content);
+      return;
+    }
+
+    const matches = content.toLowerCase().includes(messageSearchQuery);
+    bubble.classList.toggle("hidden", !matches);
+    contentEl.innerHTML = matches ? highlightSearchText(content, messageSearchQuery) : escapeHtml(content);
+
+    if (matches && !firstMatch) firstMatch = bubble;
+  });
+
+  if (firstMatch) {
+    firstMatch.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+}
+
+function highlightSearchText(text, query) {
+  if (!query) return escapeHtml(text);
+
+  let result = "";
+  let remaining = text;
+  let lowerRemaining = text.toLowerCase();
+
+  while (remaining.length > 0) {
+    const index = lowerRemaining.indexOf(query);
+    if (index === -1) {
+      result += escapeHtml(remaining);
+      break;
+    }
+
+    result += escapeHtml(remaining.slice(0, index));
+    result +=
+      '<mark class="chat-search-highlight">' +
+      escapeHtml(remaining.slice(index, index + query.length)) +
+      "</mark>";
+    remaining = remaining.slice(index + query.length);
+    lowerRemaining = lowerRemaining.slice(index + query.length);
+  }
+
+  return result;
 }
 
 function showEmptyChat() {
