@@ -2,7 +2,7 @@
 <html lang="fr" data-theme="light">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Egmon-Chat</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="css/style.css">
@@ -153,7 +153,7 @@
               id="messageSearchInput"
               placeholder="Rechercher un message..."
               autocomplete="off"
-              class="flex-1 bg-transparent outline-none placeholder-[var(--chat-muted)]"
+              class="chat-field flex-1 bg-transparent outline-none placeholder-[var(--chat-muted)]"
             >
             <label for="toggle-search" class="chat-muted text-xs cursor-pointer hover:opacity-80 shrink-0">Fermer</label>
           </div>
@@ -219,7 +219,7 @@
                 id="messageInput"
                 placeholder="Écrire un message..."
                 autocomplete="off"
-                class="flex-1 bg-transparent outline-none placeholder-[var(--chat-muted)]"
+                class="chat-field flex-1 bg-transparent outline-none placeholder-[var(--chat-muted)]"
               >
             </div>
             <button type="submit" class="chat-send-btn w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition hover:opacity-90" aria-label="Envoyer">
