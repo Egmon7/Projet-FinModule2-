@@ -41,6 +41,9 @@
           <button type="button" id="editBioBtn" class="bio-edit-open-btn mt-4 text-sm px-4 py-2 rounded-xl transition">
             Modifier ma bio
           </button>
+          <button type="button" id="changePasswordBtn" class="bio-edit-open-btn mt-2 text-sm px-4 py-2 rounded-xl transition w-full">
+            Changer mon mot de passe
+          </button>
         </div>
       </div>
     </aside>
@@ -65,6 +68,49 @@
       </div>
     </div>
 
+    <!-- Modal changement mot de passe -->
+    <div id="passwordEditModal" class="bio-edit-modal hidden" aria-hidden="true">
+      <div id="passwordEditModalBackdrop" class="bio-edit-modal-backdrop"></div>
+      <div class="bio-edit-modal-box" role="dialog" aria-labelledby="passwordEditModalTitle">
+        <h3 id="passwordEditModalTitle" class="font-semibold text-base mb-3">Changer mon mot de passe</h3>
+        <div class="space-y-3 mb-3">
+          <div>
+            <label for="currentPasswordInput" class="chat-muted text-xs block mb-1">Mot de passe actuel</label>
+            <input
+              type="password"
+              id="currentPasswordInput"
+              autocomplete="current-password"
+              class="bio-edit-input chat-field w-full rounded-xl px-3 py-2.5"
+            >
+          </div>
+          <div>
+            <label for="newPasswordInput" class="chat-muted text-xs block mb-1">Nouveau mot de passe</label>
+            <input
+              type="password"
+              id="newPasswordInput"
+              autocomplete="new-password"
+              class="bio-edit-input chat-field w-full rounded-xl px-3 py-2.5"
+            >
+          </div>
+          <div>
+            <label for="confirmNewPasswordInput" class="chat-muted text-xs block mb-1">Confirmer le nouveau mot de passe</label>
+            <input
+              type="password"
+              id="confirmNewPasswordInput"
+              autocomplete="new-password"
+              class="bio-edit-input chat-field w-full rounded-xl px-3 py-2.5"
+            >
+          </div>
+        </div>
+        <p id="passwordEditError" class="bio-edit-error hidden text-sm mb-3"></p>
+        <p id="passwordEditSuccess" class="hidden text-sm mb-3 text-green-600"></p>
+        <div class="flex gap-2 justify-end">
+          <button type="button" id="passwordEditCancel" class="bio-edit-cancel-btn text-sm px-4 py-2 rounded-xl transition">Annuler</button>
+          <button type="button" id="passwordEditSave" class="bio-edit-save-btn text-sm px-4 py-2 rounded-xl transition">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+
     <!--  Liste des chats -->
     <aside class="chat-panel-list chat-sidebar flex-col w-full md:w-[340px] md:shrink-0 md:border-r">
 
@@ -79,6 +125,19 @@
           <a href="#" data-logout class="chat-icon-btn p-2 rounded-lg transition" aria-label="Déconnexion" title="Déconnexion">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
           </a>
+        </div>
+      </div>
+
+      <div class="px-3 pb-3 shrink-0">
+        <div class="chat-input-bar flex items-center gap-2 border rounded-xl px-3 py-2">
+          <svg class="w-4 h-4 chat-muted shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input
+            type="search"
+            id="contactSearchInput"
+            placeholder="Rechercher une conversation…"
+            autocomplete="off"
+            class="chat-field flex-1 bg-transparent outline-none placeholder-[var(--chat-muted)]"
+          >
         </div>
       </div>
 

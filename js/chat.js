@@ -31,6 +31,7 @@ let refreshTimer = null;
 let renderedMessageKeys = [];
 let lastContactListOrderKey = "";
 let currentMessages = [];
+let contactSearchQuery = "";
 let messageSearchQuery = "";
 let contactsLoading = false;
 let contactsLoadError = null;
@@ -83,6 +84,7 @@ async function initChat(user) {
   }
 
   initMessageSearch();
+  initContactSearch();
   initMessageActions();
   initContactInfoActions();
 
@@ -318,6 +320,33 @@ function sortUsersByRecentActivity(users) {
   });
 }
 
+function matchesContactSearch(user) {
+  if (!contactSearchQuery) return true;
+  const name = (user.fullName || "").toLowerCase();
+  const email = (user.email || "").toLowerCase();
+  const conversation = getConversationWithUser(user.id);
+  const preview = getLastMessagePreview(conversation).toLowerCase();
+  return (
+    name.includes(contactSearchQuery) ||
+    email.includes(contactSearchQuery) ||
+    preview.includes(contactSearchQuery)
+  );
+}
+
+function filterContacts(users) {
+  return users.filter(matchesContactSearch);
+}
+
+function initContactSearch() {
+  const searchInput = document.getElementById("contactSearchInput");
+  if (!searchInput) return;
+
+  searchInput.addEventListener("input", function () {
+    contactSearchQuery = searchInput.value.trim().toLowerCase();
+    renderContactList();
+  });
+}
+
 function getContactListOrderKey() {
   return sortUsersByRecentActivity(workspaceUsers)
     .map(function (user) {
@@ -351,6 +380,7 @@ function renderContactList(options) {
   }
 
   const sortedUsers = sortUsersByRecentActivity(workspaceUsers);
+  const visibleUsers = filterContacts(sortedUsers);
 
   if (sortedUsers.length === 0) {
     if (!nav.querySelector(".chat-contact-btn")) {
@@ -363,6 +393,15 @@ function renderContactList(options) {
     return;
   }
 
+  if (visibleUsers.length === 0) {
+    nav.innerHTML = buildChatStateHtml("empty", {
+      title: "Aucun résultat",
+      text: "Aucune conversation ne correspond à votre recherche.",
+    });
+    lastContactListOrderKey = "";
+    return;
+  }
+
   const emptyState = nav.querySelector(":scope > .chat-state");
   if (emptyState) emptyState.remove();
 
@@ -371,7 +410,7 @@ function renderContactList(options) {
     existingButtons.set(btn.dataset.userId, btn);
   });
 
-  sortedUsers.forEach(function (user) {
+  visibleUsers.forEach(function (user) {
     const userId = String(user.id);
     const conversation = getConversationWithUser(user.id);
     const isActive = activeContact && String(activeContact.id) === userId;
@@ -392,7 +431,7 @@ function renderContactList(options) {
 
   const orderKey = getContactListOrderKey();
   if (!silent || orderKey !== lastContactListOrderKey) {
-    syncContactListOrder(nav, sortedUsers);
+    syncContactListOrder(nav, visibleUsers);
     lastContactListOrderKey = orderKey;
   }
 }
