@@ -41,9 +41,6 @@
           <button type="button" id="editBioBtn" class="bio-edit-open-btn mt-4 text-sm px-4 py-2 rounded-xl transition">
             Modifier ma bio
           </button>
-          <button type="button" id="changePasswordBtn" class="bio-edit-open-btn mt-2 text-sm px-4 py-2 rounded-xl transition w-full">
-            Changer mon mot de passe
-          </button>
         </div>
       </div>
     </aside>
@@ -64,49 +61,6 @@
         <div class="flex gap-2 justify-end">
           <button type="button" id="bioEditCancel" class="bio-edit-cancel-btn text-sm px-4 py-2 rounded-xl transition">Annuler</button>
           <button type="button" id="bioEditSave" class="bio-edit-save-btn text-sm px-4 py-2 rounded-xl transition">Enregistrer</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal changement mot de passe -->
-    <div id="passwordEditModal" class="bio-edit-modal hidden" aria-hidden="true">
-      <div id="passwordEditModalBackdrop" class="bio-edit-modal-backdrop"></div>
-      <div class="bio-edit-modal-box" role="dialog" aria-labelledby="passwordEditModalTitle">
-        <h3 id="passwordEditModalTitle" class="font-semibold text-base mb-3">Changer mon mot de passe</h3>
-        <div class="space-y-3 mb-3">
-          <div>
-            <label for="currentPasswordInput" class="chat-muted text-xs block mb-1">Mot de passe actuel</label>
-            <input
-              type="password"
-              id="currentPasswordInput"
-              autocomplete="current-password"
-              class="bio-edit-input chat-field w-full rounded-xl px-3 py-2.5"
-            >
-          </div>
-          <div>
-            <label for="newPasswordInput" class="chat-muted text-xs block mb-1">Nouveau mot de passe</label>
-            <input
-              type="password"
-              id="newPasswordInput"
-              autocomplete="new-password"
-              class="bio-edit-input chat-field w-full rounded-xl px-3 py-2.5"
-            >
-          </div>
-          <div>
-            <label for="confirmNewPasswordInput" class="chat-muted text-xs block mb-1">Confirmer le nouveau mot de passe</label>
-            <input
-              type="password"
-              id="confirmNewPasswordInput"
-              autocomplete="new-password"
-              class="bio-edit-input chat-field w-full rounded-xl px-3 py-2.5"
-            >
-          </div>
-        </div>
-        <p id="passwordEditError" class="bio-edit-error hidden text-sm mb-3"></p>
-        <p id="passwordEditSuccess" class="hidden text-sm mb-3 text-green-600"></p>
-        <div class="flex gap-2 justify-end">
-          <button type="button" id="passwordEditCancel" class="bio-edit-cancel-btn text-sm px-4 py-2 rounded-xl transition">Annuler</button>
-          <button type="button" id="passwordEditSave" class="bio-edit-save-btn text-sm px-4 py-2 rounded-xl transition">Enregistrer</button>
         </div>
       </div>
     </div>
@@ -279,26 +233,28 @@
               class="hidden"
               aria-hidden="true"
             >
-            <div class="chat-input-bar flex-1 flex items-center gap-2 border rounded-xl px-3 py-2.5 md:px-4">
-              <button
-                type="button"
-                id="messageImageBtn"
-                class="chat-image-upload-btn chat-icon-btn p-2 rounded-lg shrink-0 transition"
-                aria-label="Envoyer une photo"
-                title="Envoyer une photo"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                  <rect x="3" y="5" width="18" height="14" rx="2"/>
-                  <circle cx="8.5" cy="10" r="1.5" fill="currentColor" stroke="none"/>
-                  <path d="M21 17l-5.5-5.5a1 1 0 0 0-1.4 0L9 17"/>
+            <button
+              type="button"
+              id="messageImageBtn"
+              class="chat-image-pick-btn shrink-0"
+              aria-label="Envoyer une photo"
+              title="Envoyer une photo"
+            >
+              <img id="messageImagePreview" class="chat-image-pick-preview hidden" alt="" aria-hidden="true">
+              <span id="messageImageIcon" class="chat-image-pick-icon" aria-hidden="true">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
                 </svg>
-              </button>
+              </span>
+              <span id="messageImageSpinner" class="chat-image-pick-spinner hidden" aria-hidden="true"></span>
+            </button>
+            <div class="chat-input-bar flex-1 flex items-center border rounded-xl px-4 py-2.5">
               <input
                 type="text"
                 id="messageInput"
                 placeholder="Écrire un message..."
                 autocomplete="off"
-                class="chat-field flex-1 bg-transparent outline-none placeholder-[var(--chat-muted)]"
+                class="chat-field w-full bg-transparent outline-none placeholder-[var(--chat-muted)]"
               >
             </div>
             <button type="submit" class="chat-send-btn w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition hover:opacity-90" aria-label="Envoyer">

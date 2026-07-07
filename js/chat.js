@@ -318,10 +318,46 @@ async function sendChatMessage(content) {
 function initImageUpload() {
   const fileInput = document.getElementById("messageImageInput");
   const pickBtn = document.getElementById("messageImageBtn");
+  const preview = document.getElementById("messageImagePreview");
+  const icon = document.getElementById("messageImageIcon");
+  const spinner = document.getElementById("messageImageSpinner");
 
   if (!fileInput || !pickBtn) return;
 
+  let previewObjectUrl = null;
+
+  function clearImagePreview() {
+    if (previewObjectUrl) {
+      URL.revokeObjectURL(previewObjectUrl);
+      previewObjectUrl = null;
+    }
+    if (preview) {
+      preview.src = "";
+      preview.classList.add("hidden");
+    }
+    if (icon) icon.classList.remove("hidden");
+    if (spinner) spinner.classList.add("hidden");
+    pickBtn.classList.remove("chat-image-pick-btn--busy");
+  }
+
+  function showImagePreview(file) {
+    clearImagePreview();
+    previewObjectUrl = URL.createObjectURL(file);
+    if (preview) {
+      preview.src = previewObjectUrl;
+      preview.classList.remove("hidden");
+    }
+    if (icon) icon.classList.add("hidden");
+  }
+
+  function showImageUploading() {
+    if (icon) icon.classList.add("hidden");
+    if (spinner) spinner.classList.remove("hidden");
+    pickBtn.classList.add("chat-image-pick-btn--busy");
+  }
+
   pickBtn.addEventListener("click", function () {
+    if (pickBtn.disabled) return;
     if (!activeConversationId) {
       showChatToast("Choisissez un contact avant d'envoyer une photo.", true);
       return;
@@ -338,7 +374,9 @@ function initImageUpload() {
     fileInput.value = "";
     if (!file) return;
 
+    showImagePreview(file);
     pickBtn.disabled = true;
+    showImageUploading();
 
     try {
       const imageUrl = await Cloudinary.uploadImageToCloudinary(file);
@@ -347,6 +385,7 @@ function initImageUpload() {
     } catch (error) {
       showChatToast(error.message || "Impossible d'envoyer la photo.", true);
     } finally {
+      clearImagePreview();
       pickBtn.disabled = false;
     }
   });

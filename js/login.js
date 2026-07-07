@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const password = passwordInput.value;
     let hasError = false;
 
-    // ── Validation côté client ──
+
     if (!email) {
       Auth.showFieldError(emailInput, "L'email est obligatoire.");
       hasError = true;
@@ -44,13 +44,13 @@ document.addEventListener("DOMContentLoaded", function () {
     Auth.setButtonLoading(submitBtn, true);
 
     try {
-      // ── Étape 1 : connexion ──
+      // connexion 
       const loginData = await Auth.apiRequest("/auth/login", {
         method: "POST",
         body: { email: email, password: password },
       });
 
-      // L'API renvoie { success: true, data: { token: "..." } }
+      // L'API renvoie la reponse de la connexion
       const token = loginData.data && loginData.data.token;
       if (!token) {
         throw { type: "api", message: "Token non reçu du serveur." };
@@ -58,10 +58,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
       Auth.saveToken(token);
 
-      // ── Étape 2 : récupérer le profil ──
+      // récupérer le profil 
       const profileData = await Auth.apiRequest("/auth/me", { auth: true });
 
-      // Structure API : { success: true, data: { id, email, fullName, ... } }
+      
       const user = profileData.data;
       if (user) {
         Auth.saveUser(user);

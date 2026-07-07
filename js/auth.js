@@ -41,8 +41,7 @@ async function logout() {
       auth: true,
     });
   } finally {
-    // On nettoie toujours la session locale,
-    // même si la requête serveur échoue.
+
     clearAuth();
   }
 }

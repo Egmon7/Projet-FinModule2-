@@ -20,18 +20,17 @@ Application **multi-pages** en HTML, CSS et JavaScript , branchée sur l'**API R
 
 ### Authentification
 
-- Inscription (`POST /auth/register`)
-- Connexion avec récupération du profil (`POST /auth/login`, `GET /auth/me`)
-- Déconnexion (`POST /auth/logout`)
-- Mot de passe oublié (`POST /auth/forgot-password`)
+- Inscription 
+- Connexion avec récupération du profil 
+- Déconnexion 
+- Mot de passe oublié 
 - Session persistée dans le navigateur (token JWT + profil)
 
 ### Profil
 
 - Panneau **Mon profil** (barre latérale) : avatar, nom, email, bio
-- Modification de la bio (`PATCH /auth/me` ou `/users/me`)
-- **Changement de mot de passe** connecté (`POST /auth/change-password`)
-- Affichage de la bio d'un contact (panneau informations)
+- Modification de la bio 
+- Affichage de la bio d'un contact 
 
 ### Chat
 
@@ -40,7 +39,7 @@ Application **multi-pages** en HTML, CSS et JavaScript , branchée sur l'**API R
 - Ouverture d'une conversation 
 - Envoi et réception de messages en temps quasi réel (rafraîchissement automatique)
 - **Envoi de photos** : upload Cloudinary → lien HTTPS envoyé comme message
-- Modification et suppression de **ses propres** messages
+-  suppression de **ses propres** messages
 - Suppression d'une conversation
 - Recherche de texte dans la conversation active
 - Messages non lus mis en évidence dans la sidebar
@@ -91,8 +90,6 @@ Les images sont envoyées sur **Cloudinary** (pas de stockage local). Dans [Clou
 1. Cloud `ka4h4lpk` ()
 2. **Settings → Upload → Add upload preset**
 3. Mode **Unsigned**, nom : `egmon_chat`
-4. Si le nom diffère, modifier `UPLOAD_PRESET` dans `js/cloudinary.js`
-
 Le message API contient alors l’URL HTTPS de l’image (`content`).
 
 
@@ -112,7 +109,6 @@ Chaque requête envoie l'en-tête `x-api-key` (clé workspace). Les routes prot�
 | PATCH / PUT | `/auth/me` ou `/users/me` | Mise à jour du profil (ex. `{ bio }`) |
 | POST | `/auth/logout` | Déconnexion |
 | POST | `/auth/forgot-password` | Réinitialisation `{ email, newPassword }` |
-| POST | `/auth/change-password` | Mot de passe connecté `{ currentPassword, newPassword }` |
 
 ### Utilisateurs & conversations
 
