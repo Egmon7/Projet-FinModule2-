@@ -774,18 +774,43 @@ function updateContactInfo(user) {
 
 function initContactInfoActions() {
   const deleteBtn = document.getElementById("deleteConversationBtn");
+  const backdrop = document.getElementById("deleteConversationModalBackdrop");
+  const cancelBtn = document.getElementById("deleteConversationCancel");
+  const confirmBtn = document.getElementById("deleteConversationConfirm");
+
   if (deleteBtn) {
-    deleteBtn.addEventListener("click", deleteActiveConversation);
+    deleteBtn.addEventListener("click", openDeleteConversationModal);
+  }
+  if (backdrop) {
+    backdrop.addEventListener("click", closeDeleteConversationModal);
+  }
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", closeDeleteConversationModal);
+  }
+  if (confirmBtn) {
+    confirmBtn.addEventListener("click", executeDeleteActiveConversation);
   }
 }
 
-async function deleteActiveConversation() {
+function openDeleteConversationModal() {
+  if (!activeConversationId) return;
+  const modal = document.getElementById("deleteConversationModal");
+  if (!modal) return;
+  modal.classList.remove("hidden");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function closeDeleteConversationModal() {
+  const modal = document.getElementById("deleteConversationModal");
+  if (!modal) return;
+  modal.classList.add("hidden");
+  modal.setAttribute("aria-hidden", "true");
+}
+
+async function executeDeleteActiveConversation() {
   if (!activeConversationId) return;
 
-  if (!globalThis.confirm("Supprimer cette conversation ? Tous les messages seront effacés.")) {
-    return;
-  }
-
+  closeDeleteConversationModal();
   const conversationId = activeConversationId;
 
   try {

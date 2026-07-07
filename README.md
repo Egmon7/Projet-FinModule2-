@@ -67,8 +67,7 @@ projet2/
 │   ├── chat.js             # Contacts, conversations, messages
 │   ├── cloudinary.js       # Upload images → URL Cloudinary
 │   ├── blocked-users.js    # Filtrage des comptes test
-│   └── theme.js            # Bascule thème clair / sombre
-          
+│   └── theme.js            # Bascule thème clair / sombre    
 ```
 
 ## Lancer en local
@@ -80,10 +79,7 @@ projet2/
 
 ### Photos (Cloudinary)
 
-Les images sont envoyées sur **Cloudinary** (pas de stockage local). Dans [Cloudinary](https://cloudinary.com/) :
-
-
-Documentation interactive : [Swagger API Kadea](https://kadea-chat-api.onrender.com/api-docs/)
+Les images sont envoyées sur **Cloudinary** (pas de stockage local). Dans [Cloudinary](https://cloudinary.com/) 
 
 ## Auteur
 

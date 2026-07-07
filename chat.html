@@ -53,7 +53,7 @@
       </div>
     </aside>
 
-    <!-- Modal édition bio -->
+    <!-- Modal  bio -->
     <div id="bioEditModal" class="bio-edit-modal hidden" aria-hidden="true">
       <div id="bioEditModalBackdrop" class="bio-edit-modal-backdrop"></div>
       <div class="bio-edit-modal-box" role="dialog" aria-labelledby="bioEditModalTitle">
@@ -69,6 +69,19 @@
         <div class="flex gap-2 justify-end">
           <button type="button" id="bioEditCancel" class="bio-edit-cancel-btn text-sm px-4 py-2 rounded-xl transition">Annuler</button>
           <button type="button" id="bioEditSave" class="bio-edit-save-btn text-sm px-4 py-2 rounded-xl transition">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal confirmation suppression conversation -->
+    <div id="deleteConversationModal" class="bio-edit-modal hidden" aria-hidden="true">
+      <div id="deleteConversationModalBackdrop" class="bio-edit-modal-backdrop"></div>
+      <div class="bio-edit-modal-box" role="dialog" aria-labelledby="deleteConversationModalTitle">
+        <h3 id="deleteConversationModalTitle" class="font-semibold text-base mb-2">Supprimer la conversation ?</h3>
+        <p class="text-sm chat-muted mb-4">Tous les messages seront effacés. Cette action est irréversible.</p>
+        <div class="flex gap-2 justify-end">
+          <button type="button" id="deleteConversationCancel" class="bio-edit-cancel-btn text-sm px-4 py-2 rounded-xl transition">Annuler</button>
+          <button type="button" id="deleteConversationConfirm" class="chat-delete-confirm-btn text-sm px-4 py-2 rounded-xl transition">Supprimer</button>
         </div>
       </div>
     </div>

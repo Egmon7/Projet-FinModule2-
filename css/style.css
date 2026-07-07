@@ -415,6 +415,16 @@ button.chat-contact-btn:hover {
   background-color: rgba(220, 38, 38, 0.14);
 }
 
+.chat-delete-confirm-btn {
+  background-color: #dc2626;
+  color: #fff;
+  font-weight: 600;
+}
+
+.chat-delete-confirm-btn:hover {
+  opacity: 0.9;
+}
+
 .chat-edit-actions {
   display: flex;
   gap: 0.4rem;
