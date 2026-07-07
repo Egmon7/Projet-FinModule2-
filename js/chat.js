@@ -63,25 +63,21 @@ async function initChat(user) {
     messageForm.addEventListener("submit", async function (event) {
       event.preventDefault();
       const content = messageInput.value.trim();
-      if (!content || !activeConversationId || (activeContact && isCurrentUser(activeContact))) return;
+      if (!content) return;
 
       messageInput.disabled = true;
       try {
-        await Auth.apiRequest("/conversations/" + activeConversationId + "/messages", {
-          method: "POST",
-          auth: true,
-          body: { content: content },
-        });
+        await sendChatMessage(content);
         messageInput.value = "";
-        await loadMessages(activeConversationId, { silent: true, force: true });
-        await refreshChatData();
       } catch (error) {
-        console.error(error);
+        showChatToast(error.message || "Impossible d'envoyer le message.", true);
       } finally {
         messageInput.disabled = false;
       }
     });
   }
+
+  initImageUpload();
 
   initMessageSearch();
   initContactSearch();
@@ -294,9 +290,82 @@ function markConversationAsRead(conversationId) {
 function getLastMessagePreview(conversation) {
   if (!conversation) return "Commencer la conversation";
   const last = getLastMessage(conversation);
-  if (last && last.content) return last.content;
+  if (last && last.content) {
+    return Cloudinary.getMessagePreviewLabel(last.content);
+  }
   if (!isConversationPreviewReady(conversation.id)) return "Chargement…";
   return "Aucun message";
+}
+
+async function sendChatMessage(content) {
+  if (!content || !activeConversationId) {
+    throw new Error("Ouvrez une conversation pour envoyer un message.");
+  }
+  if (activeContact && isCurrentUser(activeContact)) {
+    throw new Error("Impossible d'envoyer un message à vous-même.");
+  }
+
+  await Auth.apiRequest("/conversations/" + activeConversationId + "/messages", {
+    method: "POST",
+    auth: true,
+    body: { content: content },
+  });
+
+  await loadMessages(activeConversationId, { silent: true, force: true });
+  await refreshChatData();
+}
+
+function initImageUpload() {
+  const fileInput = document.getElementById("messageImageInput");
+  const pickBtn = document.getElementById("messageImageBtn");
+
+  if (!fileInput || !pickBtn) return;
+
+  pickBtn.addEventListener("click", function () {
+    if (!activeConversationId) {
+      showChatToast("Choisissez un contact avant d'envoyer une photo.", true);
+      return;
+    }
+    if (activeContact && isCurrentUser(activeContact)) {
+      showChatToast("Impossible d'envoyer une photo à vous-même.", true);
+      return;
+    }
+    fileInput.click();
+  });
+
+  fileInput.addEventListener("change", async function () {
+    const file = fileInput.files && fileInput.files[0];
+    fileInput.value = "";
+    if (!file) return;
+
+    pickBtn.disabled = true;
+
+    try {
+      const imageUrl = await Cloudinary.uploadImageToCloudinary(file);
+      await sendChatMessage(imageUrl);
+      showChatToast("Photo envoyée.");
+    } catch (error) {
+      showChatToast(error.message || "Impossible d'envoyer la photo.", true);
+    } finally {
+      pickBtn.disabled = false;
+    }
+  });
+}
+
+function buildMessageBodyHtml(content) {
+  if (Cloudinary.isImageMessageContent(content)) {
+    return (
+      '<div class="chat-message-image-wrap">' +
+      '<img src="' +
+      escapeAttr(content.trim()) +
+      '" alt="Photo" class="chat-message-image" loading="lazy">' +
+      "</div>"
+    );
+  }
+
+  return (
+    '<p class="text-sm leading-relaxed chat-message-content">' + escapeHtml(content || "") + "</p>"
+  );
 }
 
 function getLastMessageTime(conversation) {
@@ -786,9 +855,7 @@ function createMessageBubble(msg) {
     " chat-bubble-inner max-w-full px-4 py-3 rounded-2xl " +
     (isSent ? "rounded-br-sm" : "rounded-bl-sm") +
     '">' +
-    '<p class="text-sm leading-relaxed chat-message-content">' +
-    escapeHtml(msg.content || "") +
-    "</p>" +
+    buildMessageBodyHtml(msg.content || "") +
     (isEdited ? '<span class="chat-message-edited block text-right mt-1">Modifié</span>' : "") +
     '<span class="' +
     (isSent ? "opacity-70" : "chat-muted") +
@@ -867,24 +934,31 @@ function applyMessageSearch() {
   let matchCount = 0;
 
   bubbles.forEach(function (bubble) {
-    const contentEl = bubble.querySelector(".chat-message-content");
-    if (!contentEl) return;
-
     const messageKey = bubble.dataset.messageKey;
     const message = currentMessages.find(function (item) {
       return getMessageKey(item) === messageKey;
     });
-    const content = message ? message.content || "" : contentEl.textContent;
+    const content = message ? message.content || "" : "";
+    const isImage = Cloudinary.isImageMessageContent(content);
+    const contentEl = bubble.querySelector(".chat-message-content");
 
     if (!messageSearchQuery) {
       bubble.classList.remove("hidden");
-      contentEl.innerHTML = escapeHtml(content);
+      if (contentEl) contentEl.innerHTML = escapeHtml(content);
       return;
     }
 
-    const matches = content.toLowerCase().includes(messageSearchQuery);
+    let matches = false;
+
+    if (isImage) {
+      const haystack = ("photo image " + content).toLowerCase();
+      matches = haystack.includes(messageSearchQuery);
+    } else if (contentEl) {
+      matches = content.toLowerCase().includes(messageSearchQuery);
+      contentEl.innerHTML = matches ? highlightSearchText(content, messageSearchQuery) : escapeHtml(content);
+    }
+
     bubble.classList.toggle("hidden", !matches);
-    contentEl.innerHTML = matches ? highlightSearchText(content, messageSearchQuery) : escapeHtml(content);
 
     if (matches) {
       matchCount++;
@@ -1115,6 +1189,11 @@ function startEditMessage(messageId) {
     return String(item.id) === String(messageId);
   });
   if (!message || !activeConversationId) return;
+
+  if (Cloudinary.isImageMessageContent(message.content)) {
+    showChatToast("Les photos ne peuvent pas être modifiées.", true);
+    return;
+  }
 
   editingMessageId = String(messageId);
   renderMessages(currentMessages);

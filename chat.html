@@ -272,7 +272,27 @@
         <!-- Zone de saisie -->
         <footer class="chat-header border-t px-4 md:px-6 py-4 shrink-0">
           <form id="messageForm" class="flex items-center gap-3">
-            <div class="chat-input-bar flex-1 flex items-center gap-2 border rounded-xl px-4 py-2.5">
+            <input
+              type="file"
+              id="messageImageInput"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              class="hidden"
+              aria-hidden="true"
+            >
+            <div class="chat-input-bar flex-1 flex items-center gap-2 border rounded-xl px-3 py-2.5 md:px-4">
+              <button
+                type="button"
+                id="messageImageBtn"
+                class="chat-image-upload-btn chat-icon-btn p-2 rounded-lg shrink-0 transition"
+                aria-label="Envoyer une photo"
+                title="Envoyer une photo"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="14" rx="2"/>
+                  <circle cx="8.5" cy="10" r="1.5" fill="currentColor" stroke="none"/>
+                  <path d="M21 17l-5.5-5.5a1 1 0 0 0-1.4 0L9 17"/>
+                </svg>
+              </button>
               <input
                 type="text"
                 id="messageInput"
@@ -292,6 +312,7 @@
   </div>
 
   <script src="js/auth.js"></script>
+  <script src="js/cloudinary.js"></script>
   <script src="js/blocked-users.js"></script>
   <script src="js/profile.js"></script>
   <script src="js/chat.js"></script>

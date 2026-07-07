@@ -2,7 +2,7 @@
 
 Clone d'une application de messagerie inspiré de la maquette [React Chat (Tailkits)](https://tailkits.com/templates/react-chat/), développé dans le cadre du module Kadea.
 
-Application **multi-pages** en HTML, CSS et JavaScript Vanilla, branchée sur l'**API REST Kadea Chat** 
+Application **multi-pages** en HTML, CSS et JavaScript , branchée sur l'**API REST Kadea Chat** 
 
 ## Démonstration
 
@@ -13,7 +13,7 @@ Application **multi-pages** en HTML, CSS et JavaScript Vanilla, branchée sur l'
 - HTML5
 - CSS3 (variables de thème, responsive mobile / desktop)
 - Tailwind CSS (pages d'authentification)
-- JavaScript Vanilla (`fetch`, `async` / `await`, manipulation du DOM)
+- JavaScript  (`fetch`, `async` / `await`, manipulation du DOM)
 - API REST : [Kadea Chat API](https://kadea-chat-api.onrender.com)
 
 ## Fonctionnalités
@@ -39,6 +39,7 @@ Application **multi-pages** en HTML, CSS et JavaScript Vanilla, branchée sur l'
 - **Recherche de conversations** dans la sidebar (nom, email, aperçu)
 - Ouverture d'une conversation 
 - Envoi et réception de messages en temps quasi réel (rafraîchissement automatique)
+- **Envoi de photos** : upload Cloudinary → lien HTTPS envoyé comme message
 - Modification et suppression de **ses propres** messages
 - Suppression d'une conversation
 - Recherche de texte dans la conversation active
@@ -70,9 +71,10 @@ projet2/
 │   ├── forgot-password.js
 │   ├── profile.js          # Profil connecté, bio, déconnexion
 │   ├── chat.js             # Contacts, conversations, messages
+│   ├── cloudinary.js       # Upload images → URL Cloudinary
 │   ├── blocked-users.js    # Filtrage des comptes test
 │   └── theme.js            # Bascule thème clair / sombre
-            # Utilitaires (hors application)
+          
 ```
 
 ## Lancer en local
@@ -81,6 +83,17 @@ projet2/
 2. Ouvrir `index.html` dans un navigateur (ou utiliser **Live Server**)
 3. Une connexion Internet est **requise** (appels vers l'API Kadea)
 4. Créer un compte via **S'inscrire**, puis se connecter
+
+### Photos (Cloudinary)
+
+Les images sont envoyées sur **Cloudinary** (pas de stockage local). Dans [Cloudinary](https://cloudinary.com/) :
+
+1. Cloud `ka4h4lpk` ()
+2. **Settings → Upload → Add upload preset**
+3. Mode **Unsigned**, nom : `egmon_chat`
+4. Si le nom diffère, modifier `UPLOAD_PRESET` dans `js/cloudinary.js`
+
+Le message API contient alors l’URL HTTPS de l’image (`content`).
 
 
 ## API

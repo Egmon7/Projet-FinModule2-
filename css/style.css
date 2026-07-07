@@ -100,6 +100,25 @@ button.chat-contact-btn:hover {
   background-color: #1f2937;
 }
 
+.chat-image-upload-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.chat-message-image {
+  display: block;
+  max-width: min(100%, 16rem);
+  max-height: 16rem;
+  width: auto;
+  height: auto;
+  border-radius: 0.75rem;
+  object-fit: cover;
+}
+
+.chat-message-image-wrap .chat-message-content {
+  margin: 0;
+}
+
 .chat-muted {
   color: var(--chat-muted);
 }
