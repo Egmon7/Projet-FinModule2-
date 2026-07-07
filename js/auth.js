@@ -69,16 +69,30 @@ async function apiRequest(endpoint, options = {}) {
   }
 
   let response;
+  const controller = new AbortController();
+  const timeoutMs = options.timeoutMs || 60000;
+  const timeoutId = setTimeout(function () {
+    controller.abort();
+  }, timeoutMs);
 
   try {
     response = await fetch(API_BASE_URL + endpoint, {
       method: options.method || "GET",
       headers: headers,
       body: options.body ? JSON.stringify(options.body) : undefined,
+      signal: controller.signal,
     });
   } catch (error) {
+    if (error.name === "AbortError") {
+      throw {
+        type: "network",
+        message: "Le serveur met trop de temps à répondre. Réessayez dans un instant.",
+      };
+    }
     // Erreur réseau (pas de connexion, serveur injoignable…)
     throw { type: "network", message: "Erreur réseau. Vérifiez votre connexion internet." };
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   let data = {};

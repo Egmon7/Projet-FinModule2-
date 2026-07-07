@@ -3,36 +3,98 @@ document.addEventListener("DOMContentLoaded", function () {
   if (!form) return;
 
   const emailInput = document.getElementById("email");
+  const codeInput = document.getElementById("code");
   const passwordInput = document.getElementById("password");
   const confirmInput = document.getElementById("confirmPassword");
-  const submitBtn = document.getElementById("forgotPasswordBtn");
+  const sendCodeBtn = document.getElementById("sendCodeBtn");
+  const resetFields = document.getElementById("resetPasswordFields");
   const formBox = form.closest(".auth-form-box");
 
-  const inputs = [emailInput, passwordInput, confirmInput];
+  let codeSent = false;
 
-  inputs.forEach(function (input) {
+  [emailInput, codeInput, passwordInput, confirmInput].forEach(function (input) {
+    if (!input) return;
     input.addEventListener("input", function () {
       Auth.clearFieldError(input);
       Auth.hideFormMessage(formBox);
     });
   });
 
-  form.addEventListener("submit", async function (event) {
-    event.preventDefault();
-
+  sendCodeBtn.addEventListener("click", async function () {
     Auth.clearAllFieldErrors(form);
     Auth.hideFormMessage(formBox);
 
     const email = emailInput.value.trim();
+    if (!email) {
+      Auth.showFieldError(emailInput, "L'email est obligatoire.");
+      return;
+    }
+    if (!Auth.isValidEmail(email)) {
+      Auth.showFieldError(emailInput, "Email invalide.");
+      return;
+    }
+
+    Auth.setButtonLoading(sendCodeBtn, true);
+    Auth.showFormMessage(
+      formBox,
+      "Envoi en cours… Le serveur peut mettre jusqu'à 30 secondes à répondre.",
+      "success"
+    );
+
+    try {
+      await Auth.apiRequest("/auth/forgot-password", {
+        method: "POST",
+        body: { email: email },
+        timeoutMs: 90000,
+      });
+
+      codeSent = true;
+      resetFields.classList.remove("hidden");
+      emailInput.readOnly = true;
+      sendCodeBtn.disabled = true;
+      sendCodeBtn.textContent = "Code envoyé";
+
+      Auth.showFormMessage(
+        formBox,
+        "Code envoyé ! Vérifiez votre boîte mail puis saisissez le code ci-dessous.",
+        "success"
+      );
+
+      if (codeInput) codeInput.focus();
+    } catch (error) {
+      const message = error.message || "Impossible d'envoyer le code.";
+      if (message.toLowerCase().includes("email")) {
+        Auth.showFieldError(emailInput, message);
+      }
+      Auth.showFormMessage(formBox, message, "error");
+    } finally {
+      if (!codeSent) {
+        Auth.setButtonLoading(sendCodeBtn, false);
+      }
+    }
+  });
+
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    if (!codeSent) {
+      Auth.showFormMessage(formBox, "Envoyez d'abord le code à votre adresse email.", "error");
+      return;
+    }
+
+    Auth.clearAllFieldErrors(form);
+    Auth.hideFormMessage(formBox);
+
+    const code = codeInput.value.trim();
     const newPassword = passwordInput.value;
     const confirmPassword = confirmInput.value;
     let hasError = false;
 
-    if (!email) {
-      Auth.showFieldError(emailInput, "L'email est obligatoire.");
+    if (!code) {
+      Auth.showFieldError(codeInput, "Le code est obligatoire.");
       hasError = true;
-    } else if (!Auth.isValidEmail(email)) {
-      Auth.showFieldError(emailInput, "Email invalide.");
+    } else if (!/^\d{6}$/.test(code)) {
+      Auth.showFieldError(codeInput, "Le code doit contenir 6 chiffres.");
       hasError = true;
     }
 
@@ -54,31 +116,33 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (hasError) return;
 
-    Auth.setButtonLoading(submitBtn, true);
+    const resetBtn = document.getElementById("resetPasswordBtn");
+    Auth.setButtonLoading(resetBtn, true);
 
     try {
-      await Auth.apiRequest("/auth/forgot-password", {
+      await Auth.apiRequest("/auth/reset-password", {
         method: "POST",
         body: {
-          email: email,
+          code: code,
           newPassword: newPassword,
         },
+        timeoutMs: 90000,
       });
 
-      Auth.showFormMessage(formBox, "Mot de passe réinitialisé avec succès ! Redirection…", "success");
+      Auth.showFormMessage(formBox, "Mot de passe réinitialisé ! Redirection…", "success");
       Auth.redirectAfterDelay("index.html", 1500);
     } catch (error) {
-      const message = error.message || "Une erreur est survenue.";
+      const message = error.message || "Impossible de réinitialiser le mot de passe.";
 
-      if (message.toLowerCase().includes("email")) {
-        Auth.showFieldError(emailInput, message);
-      } else if (message.toLowerCase().includes("password")) {
+      if (message.toLowerCase().includes("code")) {
+        Auth.showFieldError(codeInput, message);
+      } else if (message.toLowerCase().includes("password") || message.toLowerCase().includes("mot de passe")) {
         Auth.showFieldError(passwordInput, message);
       }
 
       Auth.showFormMessage(formBox, message, "error");
     } finally {
-      Auth.setButtonLoading(submitBtn, false);
+      Auth.setButtonLoading(resetBtn, false);
     }
   });
 });

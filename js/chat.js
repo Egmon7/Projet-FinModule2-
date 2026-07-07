@@ -33,6 +33,7 @@ let lastContactListOrderKey = "";
 let currentMessages = [];
 let contactSearchQuery = "";
 let messageSearchQuery = "";
+let messagesCacheByConversation = {};
 let contactsLoading = false;
 let contactsLoadError = null;
 let messagesLoading = false;
@@ -143,6 +144,10 @@ async function refreshConversationPreviews() {
       return syncConversationPreview(conv.id);
     })
   );
+
+  if (contactSearchQuery) {
+    renderContactList({ silent: true });
+  }
 }
 
 async function syncConversationPreview(conversationId) {
@@ -152,6 +157,8 @@ async function syncConversationPreview(conversationId) {
     });
     const messages = res.data?.messages || res.data || [];
     if (!Array.isArray(messages) || messages.length === 0) return;
+
+    cacheConversationMessages(conversationId, messages);
 
     const latest = messages[messages.length - 1];
     const previous = getLastMessage(
@@ -423,17 +430,50 @@ function sortUsersByRecentActivity(users) {
   });
 }
 
+function cacheConversationMessages(conversationId, messages) {
+  if (!conversationId || !Array.isArray(messages)) return;
+  messagesCacheByConversation[String(conversationId)] = messages;
+}
+
+function messageContentMatchesQuery(content, query) {
+  if (!query) return false;
+  const text = (content || "").toLowerCase();
+  if (Cloudinary.isImageMessageContent(content || "")) {
+    return ("photo image " + text).includes(query);
+  }
+  return text.includes(query);
+}
+
+function conversationMatchesMessageSearch(conversationId, query) {
+  if (!query || !conversationId) return false;
+  const messages = messagesCacheByConversation[String(conversationId)];
+  if (!Array.isArray(messages) || messages.length === 0) return false;
+
+  return messages.some(function (msg) {
+    return messageContentMatchesQuery(msg.content || "", query);
+  });
+}
+
 function matchesContactSearch(user) {
   if (!contactSearchQuery) return true;
   const name = (user.fullName || "").toLowerCase();
   const email = (user.email || "").toLowerCase();
   const conversation = getConversationWithUser(user.id);
   const preview = getLastMessagePreview(conversation).toLowerCase();
-  return (
+
+  if (
     name.includes(contactSearchQuery) ||
     email.includes(contactSearchQuery) ||
     preview.includes(contactSearchQuery)
-  );
+  ) {
+    return true;
+  }
+
+  if (conversation && conversationMatchesMessageSearch(conversation.id, contactSearchQuery)) {
+    return true;
+  }
+
+  return false;
 }
 
 function filterContacts(users) {
@@ -792,6 +832,7 @@ async function loadMessages(conversationId, options) {
     const messages = res.data?.messages || res.data || [];
     const list = Array.isArray(messages) ? messages : [];
     currentMessages = list;
+    cacheConversationMessages(conversationId, list);
 
     if (list.length > 0) {
       updateConversationLastMessage(conversationId, list[list.length - 1]);
@@ -997,8 +1038,7 @@ function applyMessageSearch() {
     let matches = false;
 
     if (isImage) {
-      const haystack = ("photo image " + content).toLowerCase();
-      matches = haystack.includes(messageSearchQuery);
+      matches = messageContentMatchesQuery(content, messageSearchQuery);
     } else if (contentEl) {
       matches = content.toLowerCase().includes(messageSearchQuery);
       contentEl.innerHTML = matches ? highlightSearchText(content, messageSearchQuery) : escapeHtml(content);

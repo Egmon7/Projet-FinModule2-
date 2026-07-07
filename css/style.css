@@ -564,9 +564,12 @@ button.chat-contact-btn:hover {
 }
 
 .profile-avatar-img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   display: block;
 }
 
@@ -596,10 +599,6 @@ button.chat-contact-btn:hover {
 
 .profile-avatar-wrap--sm .profile-avatar-initials {
   font-size: 0.75rem;
-}
-
-.profile-avatar-wrap--fallback .profile-avatar-initials {
-  color: var(--chat-send);
 }
 
 .profile-avatar-add-btn {
