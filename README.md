@@ -11,9 +11,9 @@ Application **multi-pages** en HTML, CSS et JavaScript , branchée sur l'**API R
 ## Technologies
 
 - HTML5
-- CSS3 (variables de thème, responsive mobile / desktop)
-- Tailwind CSS (pages d'authentification)
-- JavaScript  (`fetch`, `async` / `await`, manipulation du DOM)
+- CSS3 
+- Tailwind CSS 
+- JavaScript  
 - API REST : [Kadea Chat API](https://kadea-chat-api.onrender.com)
 
 ## Fonctionnalités
@@ -24,7 +24,6 @@ Application **multi-pages** en HTML, CSS et JavaScript , branchée sur l'**API R
 - Connexion avec récupération du profil 
 - Déconnexion 
 - Mot de passe oublié 
-- Session persistée dans le navigateur (token JWT + profil)
 
 ### Profil
 
@@ -44,7 +43,6 @@ Application **multi-pages** en HTML, CSS et JavaScript , branchée sur l'**API R
 - Recherche de texte dans la conversation active
 - Messages non lus mis en évidence dans la sidebar
 - États vides et de chargement (contacts, messages, recherche sans résultat)
-- Interface adaptée au **mobile** (liste ↔ conversation)
 
 ### Interface
 

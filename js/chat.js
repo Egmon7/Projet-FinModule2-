@@ -220,11 +220,6 @@ async function loadContacts(options) {
   }
 }
 
-function getAvatarUrl(user) {
-  const name = user.fullName || user.email || "U";
-  if (user.avatarUrl) return user.avatarUrl;
-  return "https://ui-avatar.com/api/?name=" + encodeURIComponent(name) + "&background=111827&color=fff";
-}
 
 function getConversationWithUser(userId) {
   return conversations.find(function (conv) {
@@ -552,9 +547,7 @@ function createContactListItem(user, conversation, isActive) {
     "chat-item chat-contact-btn flex items-center gap-3 p-3 rounded-xl cursor-pointer transition w-full";
   btn.dataset.userId = userId;
 
-  const img = document.createElement("img");
-  img.className = "w-11 h-11 rounded-full object-cover shrink-0";
-  img.dataset.contactAvatar = "1";
+  const avatarWrap = Avatars.buildAvatarSlot(user, "profile-avatar-wrap--md");
 
   const body = document.createElement("div");
   body.className = "flex-1 min-w-0 text-left";
@@ -578,7 +571,7 @@ function createContactListItem(user, conversation, isActive) {
   row.appendChild(timeEl);
   body.appendChild(row);
   body.appendChild(previewEl);
-  btn.appendChild(img);
+  btn.appendChild(avatarWrap);
   btn.appendChild(body);
 
   btn.addEventListener("click", function () {
@@ -593,19 +586,23 @@ function createContactListItem(user, conversation, isActive) {
 }
 
 function updateContactListItem(btn, user, conversation, isActive) {
-  const name = user.fullName || user.email || "Utilisateur";
+  const name = Avatars.getUserDisplayName(user);
   const preview = getLastMessagePreview(conversation);
   const time = getLastMessageTime(conversation);
-  const avatarUrl = getAvatarUrl(user);
   const unread = hasUnreadConversation(conversation);
 
   btn.classList.toggle("chat-item-active", !!isActive);
   btn.classList.toggle("chat-contact-unread", unread);
 
-  const img = btn.querySelector("[data-contact-avatar]");
-  if (img) {
-    if (img.getAttribute("src") !== avatarUrl) img.setAttribute("src", avatarUrl);
-    if (img.getAttribute("alt") !== name) img.setAttribute("alt", name);
+  const avatarWrap = btn.querySelector(".profile-avatar-wrap");
+  if (avatarWrap) {
+    Avatars.applyAvatarSlot({
+      wrap: avatarWrap,
+      img: avatarWrap.querySelector(".profile-avatar-img"),
+      initials: avatarWrap.querySelector(".profile-avatar-initials"),
+      name: name,
+      avatarUrl: user.avatarUrl,
+    });
   }
 
   const nameEl = btn.querySelector("[data-contact-name]");
@@ -679,21 +676,31 @@ async function openChatWithUser(user) {
 }
 
 function updateChatHeader(user) {
-  const name = user.fullName || user.email || "Utilisateur";
+  const name = Avatars.getUserDisplayName(user);
   setText("chatHeaderName", name);
   setText("chatHeaderStatus", user.email || "");
-  setAttr("chatHeaderAvatar", "src", getAvatarUrl(user));
-  setAttr("chatHeaderAvatar", "alt", name);
+  Avatars.applyAvatarSlot({
+    wrap: document.getElementById("chatHeaderAvatarWrap"),
+    img: document.getElementById("chatHeaderAvatar"),
+    initials: document.getElementById("chatHeaderInitials"),
+    name: name,
+    avatarUrl: user.avatarUrl,
+  });
   showChatArea();
 }
 
 function updateContactInfo(user) {
-  const name = user.fullName || "Utilisateur";
+  const name = Avatars.getUserDisplayName(user);
   setText("contactInfoName", name);
   setText("contactInfoEmail", user.email || "—");
   setText("contactInfoBio", user.bio || "—");
-  setAttr("contactInfoAvatar", "src", getAvatarUrl(user));
-  setAttr("contactInfoAvatar", "alt", name);
+  Avatars.applyAvatarSlot({
+    wrap: document.getElementById("contactInfoAvatarWrap"),
+    img: document.getElementById("contactInfoAvatar"),
+    initials: document.getElementById("contactInfoInitials"),
+    name: name,
+    avatarUrl: user.avatarUrl,
+  });
 
   const conversation = getConversationWithUser(user.id);
   const deleteWrap = document.getElementById("deleteConversationWrap");

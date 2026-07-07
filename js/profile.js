@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   });
 
   initBioEditor();
+  initAvatarEditor();
 
   try {
     const response = await Auth.apiRequest("/auth/me", { auth: true });
@@ -39,22 +40,128 @@ document.addEventListener("DOMContentLoaded", async function () {
 });
 
 function displayProfile(user) {
-  const name = user.fullName || "Utilisateur";
+  const name = Avatars.getUserDisplayName(user);
   const email = user.email || "—";
   const bio = user.bio && user.bio.trim() ? user.bio.trim() : "Aucune bio pour le moment.";
-  const avatar =
-    user.avatarUrl ||
-    "https://ui-avatar.com/api/?name=" + encodeURIComponent(name) + "&background=111827&color=fff";
+
+  Avatars.applyAvatarSlot({
+    wrap: document.getElementById("profilePanelAvatarWrap"),
+    img: document.getElementById("profilePanelAvatar"),
+    initials: document.getElementById("profilePanelInitials"),
+    name: name,
+    avatarUrl: user.avatarUrl,
+  });
+
+  Avatars.applyAvatarSlot({
+    wrap: document.getElementById("profileBtnAvatarWrap"),
+    img: document.getElementById("profileBtnAvatar"),
+    initials: document.getElementById("profileBtnInitials"),
+    name: name,
+    avatarUrl: user.avatarUrl,
+  });
 
   setText("profileBtnName", name);
-  setAttr("profileBtnAvatar", "src", avatar);
-  setAttr("profileBtnAvatar", "alt", name);
-
-  setAttr("profilePanelAvatar", "src", avatar);
-  setAttr("profilePanelAvatar", "alt", name);
   setText("profilePanelName", name);
   setText("profilePanelEmail", email);
   setText("profilePanelBio", bio);
+}
+
+function hideProfileAvatarError() {
+  const el = document.getElementById("profileAvatarError");
+  if (!el) return;
+  el.textContent = "";
+  el.classList.add("hidden");
+}
+
+function showProfileAvatarError(message) {
+  const el = document.getElementById("profileAvatarError");
+  if (!el) return;
+  el.textContent = message;
+  el.classList.remove("hidden");
+}
+
+function initAvatarEditor() {
+  const pickBtn = document.getElementById("profileAvatarBtn");
+  const fileInput = document.getElementById("profileAvatarInput");
+
+  if (!pickBtn || !fileInput) return;
+
+  pickBtn.addEventListener("click", function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+    hideProfileAvatarError();
+    if (!pickBtn.disabled) fileInput.click();
+  });
+
+  fileInput.addEventListener("change", async function () {
+    const file = fileInput.files && fileInput.files[0];
+    fileInput.value = "";
+    if (!file) return;
+
+    pickBtn.disabled = true;
+
+    try {
+      const imageUrl = await Cloudinary.uploadImageToCloudinary(file);
+      const user = await updateUserProfile({ avatarUrl: imageUrl });
+      Auth.saveUser(user);
+      displayProfile(user);
+      hideProfileAvatarError();
+      document.dispatchEvent(
+        new CustomEvent("egmon-profile-updated", {
+          detail: user,
+        })
+      );
+    } catch (error) {
+      showProfileAvatarError(error.message || "Impossible de mettre à jour la photo.");
+    } finally {
+      pickBtn.disabled = false;
+    }
+  });
+}
+
+async function updateUserProfile(fields) {
+  const candidates = [
+    { method: "PATCH", path: "/auth/me" },
+    { method: "PATCH", path: "/users/me" },
+    { method: "PUT", path: "/auth/me" },
+    { method: "PUT", path: "/users/me" },
+  ];
+
+  let response = null;
+  let lastError = null;
+
+  for (let i = 0; i < candidates.length; i++) {
+    const candidate = candidates[i];
+    try {
+      response = await Auth.apiRequest(candidate.path, {
+        method: candidate.method,
+        auth: true,
+        body: fields,
+      });
+      break;
+    } catch (error) {
+      lastError = error;
+      if (error.status !== 404 && error.status !== 405) {
+        throw error;
+      }
+    }
+  }
+
+  if (!response) {
+    throw lastError || new Error("Impossible de mettre à jour le profil.");
+  }
+
+  const user = response.data?.user || response.data;
+  if (user && user.id) {
+    return user;
+  }
+
+  const meRes = await Auth.apiRequest("/auth/me", { auth: true });
+  const refreshed = meRes.data?.user || meRes.data;
+  if (!refreshed) {
+    throw new Error("Impossible de recharger le profil.");
+  }
+  return refreshed;
 }
 
 function initBioEditor() {
@@ -83,7 +190,7 @@ function initBioEditor() {
     saveBtn.disabled = true;
 
     try {
-      const user = await updateUserBio(bio);
+      const user = await updateUserProfile({ bio: bio });
       Auth.saveUser(user);
       displayProfile(user);
       closeBioModal();
@@ -98,52 +205,6 @@ function initBioEditor() {
       saveBtn.disabled = false;
     }
   });
-}
-
-async function updateUserBio(bio) {
-  const body = { bio: bio };
-  const candidates = [
-    { method: "PATCH", path: "/auth/me" },
-    { method: "PATCH", path: "/users/me" },
-    { method: "PUT", path: "/auth/me" },
-    { method: "PUT", path: "/users/me" },
-  ];
-
-  let response = null;
-  let lastError = null;
-
-  for (let i = 0; i < candidates.length; i++) {
-    const candidate = candidates[i];
-    try {
-      response = await Auth.apiRequest(candidate.path, {
-        method: candidate.method,
-        auth: true,
-        body: body,
-      });
-      break;
-    } catch (error) {
-      lastError = error;
-      if (error.status !== 404 && error.status !== 405) {
-        throw error;
-      }
-    }
-  }
-
-  if (!response) {
-    throw lastError || new Error("Impossible d'enregistrer la bio.");
-  }
-
-  const user = response.data?.user || response.data;
-  if (user && user.id) {
-    return user;
-  }
-
-  const meRes = await Auth.apiRequest("/auth/me", { auth: true });
-  const refreshed = meRes.data?.user || meRes.data;
-  if (!refreshed) {
-    throw new Error("Impossible de recharger le profil.");
-  }
-  return refreshed;
 }
 
 function openBioModal() {

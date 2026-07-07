@@ -31,7 +31,15 @@
       </div>
       <div class="flex-1 overflow-y-auto chat-scroll p-5">
         <div class="flex flex-col items-center text-center mb-6">
-          <img id="profilePanelAvatar" src="https://ui-avatar.com/api/?name=User&background=111827&color=fff" alt="Mon profil" class="w-20 h-20 rounded-full object-cover mb-3">
+          <div class="profile-avatar-editor profile-avatar-editor--lg mb-3">
+            <div class="profile-avatar-wrap profile-avatar-wrap--lg" id="profilePanelAvatarWrap">
+              <img id="profilePanelAvatar" class="profile-avatar-img hidden" alt="">
+              <span id="profilePanelInitials" class="profile-avatar-initials">?</span>
+            </div>
+            <button type="button" id="profileAvatarBtn" class="profile-avatar-add-btn" aria-label="Ajouter ou changer la photo" title="Photo de profil">+</button>
+          </div>
+          <input type="file" id="profileAvatarInput" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden" aria-hidden="true">
+          <p id="profileAvatarError" class="bio-edit-error hidden text-sm mb-2 max-w-[16rem]"></p>
           <p id="profilePanelName" class="font-semibold text-base">Chargement…</p>
           <p id="profilePanelEmail" class="chat-muted text-sm break-all mt-1">—</p>
           <div class="w-full mt-4 text-left">
@@ -102,7 +110,10 @@
       <!-- Bouton profil connecté -->
       <div class="chat-header border-t px-3 py-3 shrink-0">
         <label for="toggle-my-profile" class="chat-item flex items-center gap-3 p-3 rounded-xl cursor-pointer transition w-full">
-          <img id="profileBtnAvatar" src="https://ui-avatar.com/api/?name=User&background=111827&color=fff" alt="Mon profil" class="w-10 h-10 rounded-full object-cover shrink-0">
+          <div class="profile-avatar-wrap profile-avatar-wrap--sm shrink-0" id="profileBtnAvatarWrap">
+            <img id="profileBtnAvatar" class="profile-avatar-img hidden" alt="">
+            <span id="profileBtnInitials" class="profile-avatar-initials">?</span>
+          </div>
           <div class="flex-1 min-w-0">
             <p id="profileBtnName" class="font-semibold text-sm truncate">Chargement…</p>
             <p class="chat-muted text-xs truncate">Voir mon profil</p>
@@ -134,7 +145,10 @@
             <label for="view-list" class="chat-icon-btn p-2 rounded-lg cursor-pointer transition md:hidden" aria-label="Retour">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
             </label>
-            <img id="chatHeaderAvatar" src="https://ui-avatar.com/api/?name=User&background=111827&color=fff" alt="Contact" class="w-10 h-10 rounded-full object-cover">
+            <div class="profile-avatar-wrap profile-avatar-wrap--sm shrink-0" id="chatHeaderAvatarWrap">
+              <img id="chatHeaderAvatar" class="profile-avatar-img hidden" alt="">
+              <span id="chatHeaderInitials" class="profile-avatar-initials">?</span>
+            </div>
             <div>
               <h2 id="chatHeaderName" class="font-semibold text-sm md:text-base">—</h2>
               <p id="chatHeaderStatus" class="chat-muted text-xs">—</p>
@@ -179,7 +193,10 @@
             <label for="toggle-profile-info" class="chat-muted text-xs cursor-pointer hover:opacity-80">Fermer</label>
           </div>
           <div class="flex items-center gap-3 mb-4">
-            <img id="contactInfoAvatar" src="https://ui-avatar.com/api/?name=User&background=111827&color=fff" alt="Contact" class="w-12 h-12 rounded-full object-cover">
+            <div class="profile-avatar-wrap profile-avatar-wrap--md shrink-0" id="contactInfoAvatarWrap">
+              <img id="contactInfoAvatar" class="profile-avatar-img hidden" alt="">
+              <span id="contactInfoInitials" class="profile-avatar-initials">?</span>
+            </div>
             <div>
               <p id="contactInfoName" class="font-semibold text-sm">—</p>
               <p class="chat-muted text-xs">Membre Egmon-Chat</p>
@@ -269,6 +286,7 @@
 
   <script src="js/auth.js"></script>
   <script src="js/cloudinary.js"></script>
+  <script src="js/avatars.js"></script>
   <script src="js/blocked-users.js"></script>
   <script src="js/profile.js"></script>
   <script src="js/chat.js"></script>
