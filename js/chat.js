@@ -31,9 +31,7 @@ let refreshTimer = null;
 let renderedMessageKeys = [];
 let lastContactListOrderKey = "";
 let currentMessages = [];
-let contactSearchQuery = "";
 let messageSearchQuery = "";
-let messagesCacheByConversation = {};
 let contactsLoading = false;
 let contactsLoadError = null;
 let messagesLoading = false;
@@ -81,7 +79,6 @@ async function initChat(user) {
   initImageUpload();
 
   initMessageSearch();
-  initContactSearch();
   initMessageActions();
   initContactInfoActions();
 
@@ -145,9 +142,6 @@ async function refreshConversationPreviews() {
     })
   );
 
-  if (contactSearchQuery) {
-    renderContactList({ silent: true });
-  }
 }
 
 async function syncConversationPreview(conversationId) {
@@ -157,8 +151,6 @@ async function syncConversationPreview(conversationId) {
     });
     const messages = res.data?.messages || res.data || [];
     if (!Array.isArray(messages) || messages.length === 0) return;
-
-    cacheConversationMessages(conversationId, messages);
 
     const latest = messages[messages.length - 1];
     const previous = getLastMessage(
@@ -430,66 +422,6 @@ function sortUsersByRecentActivity(users) {
   });
 }
 
-function cacheConversationMessages(conversationId, messages) {
-  if (!conversationId || !Array.isArray(messages)) return;
-  messagesCacheByConversation[String(conversationId)] = messages;
-}
-
-function messageContentMatchesQuery(content, query) {
-  if (!query) return false;
-  const text = (content || "").toLowerCase();
-  if (Cloudinary.isImageMessageContent(content || "")) {
-    return ("photo image " + text).includes(query);
-  }
-  return text.includes(query);
-}
-
-function conversationMatchesMessageSearch(conversationId, query) {
-  if (!query || !conversationId) return false;
-  const messages = messagesCacheByConversation[String(conversationId)];
-  if (!Array.isArray(messages) || messages.length === 0) return false;
-
-  return messages.some(function (msg) {
-    return messageContentMatchesQuery(msg.content || "", query);
-  });
-}
-
-function matchesContactSearch(user) {
-  if (!contactSearchQuery) return true;
-  const name = (user.fullName || "").toLowerCase();
-  const email = (user.email || "").toLowerCase();
-  const conversation = getConversationWithUser(user.id);
-  const preview = getLastMessagePreview(conversation).toLowerCase();
-
-  if (
-    name.includes(contactSearchQuery) ||
-    email.includes(contactSearchQuery) ||
-    preview.includes(contactSearchQuery)
-  ) {
-    return true;
-  }
-
-  if (conversation && conversationMatchesMessageSearch(conversation.id, contactSearchQuery)) {
-    return true;
-  }
-
-  return false;
-}
-
-function filterContacts(users) {
-  return users.filter(matchesContactSearch);
-}
-
-function initContactSearch() {
-  const searchInput = document.getElementById("contactSearchInput");
-  if (!searchInput) return;
-
-  searchInput.addEventListener("input", function () {
-    contactSearchQuery = searchInput.value.trim().toLowerCase();
-    renderContactList();
-  });
-}
-
 function getContactListOrderKey() {
   return sortUsersByRecentActivity(workspaceUsers)
     .map(function (user) {
@@ -523,7 +455,7 @@ function renderContactList(options) {
   }
 
   const sortedUsers = sortUsersByRecentActivity(workspaceUsers);
-  const visibleUsers = filterContacts(sortedUsers);
+  const visibleUsers = sortedUsers;
 
   if (sortedUsers.length === 0) {
     if (!nav.querySelector(".chat-contact-btn")) {
@@ -532,15 +464,6 @@ function renderContactList(options) {
         text: "Aucun autre utilisateur inscrit pour le moment.",
       });
     }
-    lastContactListOrderKey = "";
-    return;
-  }
-
-  if (visibleUsers.length === 0) {
-    nav.innerHTML = buildChatStateHtml("empty", {
-      title: "Aucun résultat",
-      text: "Aucune conversation ne correspond à votre recherche.",
-    });
     lastContactListOrderKey = "";
     return;
   }
@@ -670,9 +593,22 @@ function updateContactListItem(btn, user, conversation, isActive) {
 }
 
 function syncContactListOrder(nav, sortedUsers) {
-  sortedUsers.forEach(function (user) {
-    const btn = nav.querySelector('.chat-contact-btn[data-user-id="' + user.id + '"]');
-    if (btn) nav.appendChild(btn);
+  const buttons = sortedUsers
+    .map(function (user) {
+      return nav.querySelector('.chat-contact-btn[data-user-id="' + user.id + '"]');
+    })
+    .filter(Boolean);
+
+  const current = Array.from(nav.querySelectorAll(".chat-contact-btn"));
+  const sameOrder =
+    buttons.length === current.length && buttons.every(function (btn, index) {
+      return btn === current[index];
+    });
+
+  if (sameOrder) return;
+
+  buttons.forEach(function (btn) {
+    nav.appendChild(btn);
   });
 }
 
@@ -832,7 +768,6 @@ async function loadMessages(conversationId, options) {
     const messages = res.data?.messages || res.data || [];
     const list = Array.isArray(messages) ? messages : [];
     currentMessages = list;
-    cacheConversationMessages(conversationId, list);
 
     if (list.length > 0) {
       updateConversationLastMessage(conversationId, list[list.length - 1]);
@@ -903,6 +838,7 @@ function createMessageBubble(msg) {
   const messageId = msg.id ? String(msg.id) : "";
   const isEdited = msg.updatedAt && msg.createdAt && msg.updatedAt !== msg.createdAt;
   const isEditing = editingMessageId && messageId && editingMessageId === messageId;
+  const isImage = Cloudinary.isImageMessageContent(msg.content || "");
   const bubble = document.createElement("div");
   bubble.className = "flex " + (isSent ? "justify-end" : "justify-start");
   bubble.dataset.messageKey = getMessageKey(msg);
@@ -939,7 +875,8 @@ function createMessageBubble(msg) {
     '<div class="chat-bubble-wrap">' +
     '<div class="' +
     (isSent ? "chat-sent" : "chat-received") +
-    " chat-bubble-inner max-w-full px-4 py-3 rounded-2xl " +
+    " chat-bubble-inner max-w-full rounded-2xl " +
+    (isImage ? "chat-bubble-inner--image " : "px-4 py-3 ") +
     (isSent ? "rounded-br-sm" : "rounded-bl-sm") +
     '">' +
     buildMessageBodyHtml(msg.content || "") +
@@ -1038,7 +975,8 @@ function applyMessageSearch() {
     let matches = false;
 
     if (isImage) {
-      matches = messageContentMatchesQuery(content, messageSearchQuery);
+      const haystack = ("photo image " + content).toLowerCase();
+      matches = haystack.includes(messageSearchQuery);
     } else if (contentEl) {
       matches = content.toLowerCase().includes(messageSearchQuery);
       contentEl.innerHTML = matches ? highlightSearchText(content, messageSearchQuery) : escapeHtml(content);

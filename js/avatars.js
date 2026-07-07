@@ -29,16 +29,28 @@ function applyAvatarSlot(config) {
   if (!wrap || !initialsEl) return;
 
   const letters = getUserInitials(name);
+  const nextUrl = isValidAvatarUrl(avatarUrl) ? avatarUrl.trim() : "";
+  const prevUrl = wrap.dataset.avatarUrl || "";
+  const prevState = wrap.dataset.avatarState || "";
+
   initialsEl.textContent = letters;
+  if (img) img.alt = name;
+
+  if (nextUrl === prevUrl && prevState === (nextUrl ? "image" : "initials")) {
+    return;
+  }
+
+  wrap.dataset.avatarUrl = nextUrl;
+  wrap.dataset.avatarState = nextUrl ? "image" : "initials";
 
   if (img) {
-    img.alt = name;
     img.onerror = showInitials;
     img.onload = function () {
       if (img.src && img.naturalWidth > 0) {
         img.classList.remove("hidden");
         initialsEl.classList.add("hidden");
         wrap.classList.remove("profile-avatar-wrap--fallback");
+        wrap.dataset.avatarState = "image";
       } else {
         showInitials();
       }
@@ -46,6 +58,8 @@ function applyAvatarSlot(config) {
   }
 
   function showInitials() {
+    wrap.dataset.avatarUrl = "";
+    wrap.dataset.avatarState = "initials";
     if (img) {
       img.classList.add("hidden");
       img.removeAttribute("src");
@@ -59,14 +73,21 @@ function applyAvatarSlot(config) {
       showInitials();
       return;
     }
+    if (img.getAttribute("src") === src && !img.classList.contains("hidden")) {
+      return;
+    }
     initialsEl.classList.add("hidden");
     wrap.classList.remove("profile-avatar-wrap--fallback");
-    img.classList.add("hidden");
-    img.src = src;
+    if (img.getAttribute("src") !== src) {
+      img.classList.add("hidden");
+      img.src = src;
+    } else {
+      img.classList.remove("hidden");
+    }
   }
 
-  if (isValidAvatarUrl(avatarUrl)) {
-    showImage(avatarUrl.trim());
+  if (nextUrl) {
+    showImage(nextUrl);
   } else {
     showInitials();
   }

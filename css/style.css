@@ -152,16 +152,24 @@ button.chat-contact-btn:hover {
   animation: spin 0.7s linear infinite;
 }
 
-.chat-message-image {
-  display: block;
-  width: 10rem;
-  height: 10rem;
-  border-radius: 9999px;
-  object-fit: cover;
+.chat-message-image-wrap {
+  line-height: 0;
+  max-width: min(100%, 15rem);
 }
 
-.chat-message-image-wrap .chat-message-content {
-  margin: 0;
+.chat-message-image {
+  display: block;
+  width: 100%;
+  max-width: 15rem;
+  max-height: 15rem;
+  height: auto;
+  border-radius: 0.65rem;
+  object-fit: contain;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.chat-bubble-inner--image {
+  padding: 0.35rem;
 }
 
 .chat-muted {

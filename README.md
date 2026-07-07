@@ -23,7 +23,7 @@ Application **multi-pages** en HTML, CSS et JavaScript , branchée sur l'**API R
 - Inscription 
 - Connexion avec récupération du profil 
 - Déconnexion 
-- Mot de passe oublié 
+- Mot de passe oublié (page statique)
 
 ### Profil
 
@@ -34,12 +34,11 @@ Application **multi-pages** en HTML, CSS et JavaScript , branchée sur l'**API R
 ### Chat
 
 - Liste des utilisateurs du workspace et des conversations existantes
-- **Recherche de conversations** dans la sidebar (nom, email, aperçu)
 - Envoi et réception de messages en temps quasi réel (rafraîchissement automatique)
-- **Envoi de photos** : upload Cloudinary → lien HTTPS envoyé comme message
+- **Envoi de photos** : upload Cloudinary 
 -  suppression de **ses propres** messages
 - Suppression d'une conversation
-- Recherche de texte dans la conversation active
+- Recherche de message dans la conversation active
 - Messages non lus mis en évidence dans la sidebar
 - États vides et de chargement 
 
@@ -64,7 +63,6 @@ projet2/
 │   ├── auth.js             # API, session, helpers formulaires
 │   ├── login.js
 │   ├── register.js
-│   ├── forgot-password.js
 │   ├── profile.js          # Profil connecté, bio, déconnexion
 │   ├── chat.js             # Contacts, conversations, messages
 │   ├── cloudinary.js       # Upload images → URL Cloudinary
@@ -83,11 +81,6 @@ projet2/
 ### Photos (Cloudinary)
 
 Les images sont envoyées sur **Cloudinary** (pas de stockage local). Dans [Cloudinary](https://cloudinary.com/) :
-
-1. Cloud `ka4h4lpk` ()
-2. **Settings → Upload → Add upload preset**
-3. Mode **Unsigned**, nom : `egmon_chat`
-Le message API contient alors l’URL HTTPS de l’image (`content`).
 
 
 Documentation interactive : [Swagger API Kadea](https://kadea-chat-api.onrender.com/api-docs/)
