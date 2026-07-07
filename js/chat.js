@@ -40,6 +40,7 @@ let chatToastTimer = null;
 let unreadByConversation = {};
 let contextMenuMessageId = null;
 let previewReadyConversations = new Set();
+let sendingMessage = false;
 
 const REFRESH_INTERVAL_MS = 1500;
 
@@ -64,14 +65,14 @@ async function initChat(user) {
       const content = messageInput.value.trim();
       if (!content) return;
 
-      messageInput.disabled = true;
+      messageInput.value = "";
+
       try {
         await sendChatMessage(content);
-        messageInput.value = "";
       } catch (error) {
         showChatToast(error.message || "Impossible d'envoyer le message.", true);
       } finally {
-        messageInput.disabled = false;
+        messageInput.focus();
       }
     });
   }
@@ -121,7 +122,7 @@ async function refreshChatData() {
   try {
     await loadContacts({ silent: true });
     await refreshConversationPreviews();
-    if (activeConversationId) {
+    if (activeConversationId && !sendingMessage) {
       await loadMessages(activeConversationId, { silent: true });
     }
     renderContactList({ silent: true });
@@ -298,15 +299,99 @@ async function sendChatMessage(content) {
   if (activeContact && isCurrentUser(activeContact)) {
     throw new Error("Impossible d'envoyer un message à vous-même.");
   }
+  if (sendingMessage) {
+    throw new Error("Un message est déjà en cours d'envoi.");
+  }
 
-  await Auth.apiRequest("/conversations/" + activeConversationId + "/messages", {
-    method: "POST",
-    auth: true,
-    body: { content: content },
+  sendingMessage = true;
+  const optimisticKey = appendOptimisticMessage(content);
+
+  try {
+    await Auth.apiRequest("/conversations/" + activeConversationId + "/messages", {
+      method: "POST",
+      auth: true,
+      body: { content: content },
+    });
+
+    await loadMessages(activeConversationId, { silent: true, force: true });
+    refreshChatData();
+  } catch (error) {
+    removeOptimisticMessage(optimisticKey);
+    throw error;
+  } finally {
+    sendingMessage = false;
+  }
+}
+
+function createOptimisticMessage(content) {
+  return {
+    content: content,
+    createdAt: new Date().toISOString(),
+    sender: currentUser || {},
+    _pending: true,
+  };
+}
+
+function appendOptimisticMessage(content) {
+  const container = document.getElementById("messagesContainer");
+  if (!container) return "";
+
+  const panelState = container.querySelector(":scope > .chat-state");
+  if (panelState) panelState.remove();
+
+  const msg = createOptimisticMessage(content);
+  const optimisticKey = "pending:" + Date.now() + ":" + Math.random().toString(36).slice(2, 8);
+  msg._optimisticKey = optimisticKey;
+
+  const bubble = createMessageBubble(msg);
+  bubble.dataset.messageKey = optimisticKey;
+  bubble.classList.add("chat-message-pending");
+
+  container.appendChild(bubble);
+  renderedMessageKeys.push(optimisticKey);
+  currentMessages.push(msg);
+  scrollMessagesToBottom();
+
+  return optimisticKey;
+}
+
+function removeOptimisticMessage(optimisticKey) {
+  if (!optimisticKey) return;
+
+  const container = document.getElementById("messagesContainer");
+  if (container) {
+    const bubble = container.querySelector('[data-message-key="' + optimisticKey + '"]');
+    if (bubble) bubble.remove();
+  }
+
+  renderedMessageKeys = renderedMessageKeys.filter(function (key) {
+    return key !== optimisticKey;
   });
 
-  await loadMessages(activeConversationId, { silent: true, force: true });
-  await refreshChatData();
+  currentMessages = currentMessages.filter(function (msg) {
+    return msg._optimisticKey !== optimisticKey;
+  });
+}
+
+function scrollMessagesToBottom() {
+  const container = document.getElementById("messagesContainer");
+  if (!container) return;
+
+  function scrollNow() {
+    container.scrollTop = container.scrollHeight;
+  }
+
+  scrollNow();
+  requestAnimationFrame(function () {
+    scrollNow();
+    requestAnimationFrame(scrollNow);
+  });
+
+  container.querySelectorAll(".chat-message-image").forEach(function (img) {
+    if (!img.complete) {
+      img.addEventListener("load", scrollNow, { once: true });
+    }
+  });
 }
 
 function initImageUpload() {
@@ -644,6 +729,8 @@ async function openChatWithUser(user) {
     const viewChat = document.getElementById("view-chat");
     if (viewChat) viewChat.checked = true;
 
+    scrollMessagesToBottom();
+
     const messageInput = document.getElementById("messageInput");
     if (messageInput) messageInput.focus();
   } catch (error) {
@@ -826,7 +913,7 @@ function syncRenderedMessages(messages) {
   }
 
   if (wasAtBottom) {
-    container.scrollTop = container.scrollHeight;
+    scrollMessagesToBottom();
   }
 
   return true;
@@ -909,7 +996,7 @@ function renderMessages(messages) {
     renderedMessageKeys.push(getMessageKey(msg));
   });
 
-  container.scrollTop = container.scrollHeight;
+  scrollMessagesToBottom();
 
   if (messageSearchQuery) applyMessageSearch();
 }

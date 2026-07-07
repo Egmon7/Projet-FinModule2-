@@ -172,6 +172,10 @@ button.chat-contact-btn:hover {
   padding: 0.35rem;
 }
 
+.chat-message-pending {
+  opacity: 0.75;
+}
+
 .chat-muted {
   color: var(--chat-muted);
 }
