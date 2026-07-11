@@ -1,4 +1,4 @@
-# Egmon-Chat
+# Kadea-Chat
 
 Clone d'une application de messagerie inspiré de la maquette [React Chat (Tailkits)](https://tailkits.com/templates/react-chat/), développé dans le cadre du module Kadea.
 
@@ -44,25 +44,25 @@ Application **multi-pages** en HTML, CSS et JavaScript , branchée sur l'**API R
 
 ### Interface
 
-- Thème **clair / sombre** mémorisé localement
+- Thème **clair / sombre** 
 - Masquage des comptes de test (`blocked-users.js`)
 
 ## Structure du projet
 
 ```
 projet2/
-├── README.md               # Présentation, installation, routes API
+├── README.md               # Présentation, installation 
 ├── .gitignore              # Fichiers ignorés par Git
 ├── index.html              # Connexion
 ├── register.html           # Inscription
-├── forgot-password.html    # Mot de passe oublié
+├── forgot-password.html    # Mot de passe oublié (statique)
 ├── chat.html               # Application de chat
 ├── css/
 │   └── style.css           # Thème, layout chat, composants
 ├── js/
 │   ├── auth.js             # API, session, helpers formulaires
-│   ├── login.js
-│   ├── register.js
+│   ├── login.js            # Formulaire de connexion, token, redirection chat
+│   ├── register.js         # Inscription, validation, compteur mot de passe
 │   ├── profile.js          # Profil connecté, bio, déconnexion
 │   ├── chat.js             # Contacts, conversations, messages
 │   ├── cloudinary.js       # Upload images → URL Cloudinary
@@ -83,4 +83,4 @@ Les images sont envoyées sur **Cloudinary** (pas de stockage local). Dans [Clou
 
 ## Auteur
 
-Prospere Engeba
+**Prospere Engeba.**
