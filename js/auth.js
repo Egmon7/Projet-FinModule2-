@@ -33,6 +33,7 @@ function clearAuth() {
 function isAuthenticated() {
   return getToken() !== null;
 }
+ // logout 
 
 async function logout() {
   try {
@@ -48,11 +49,7 @@ async function logout() {
 
 /* ─── Appels API ─── */
 
-/**
- * Envoie une requête à l'API.
- * @param {string} endpoint 
- * @param {object} options 
- */
+
 async function apiRequest(endpoint, options = {}) {
   const headers = {
     "Content-Type": "application/json",
@@ -123,6 +120,8 @@ function isValidEmail(email) {
 
 /* ─── Helpers UX formulaire ─── */
 
+
+// Champ rouge + message d'erreur en dessous
 function showFieldError(input, message) {
   clearFieldError(input);
 
@@ -137,6 +136,8 @@ function showFieldError(input, message) {
   input.parentElement.appendChild(errorEl);
 }
 
+
+// Enlève l’erreur d’un champ
 function clearFieldError(input) {
   input.classList.remove("input-error");
 
@@ -144,12 +145,15 @@ function clearFieldError(input) {
   if (existing) existing.remove();
 }
 
+
+//Remet tout le formulaire proprement
 function clearAllFieldErrors(form) {
   form.querySelectorAll(".input-error").forEach(function (input) {
     clearFieldError(input);
   });
 }
 
+//Affiche un message de succès ou d'erreur
 function showFormMessage(container, message, type) {
   let el = container.querySelector(".form-message");
 
@@ -163,11 +167,13 @@ function showFormMessage(container, message, type) {
   el.className = "form-message form-message--" + type + " form-message--visible";
 }
 
+//Cache un message de succès ou d'erreur
 function hideFormMessage(container) {
   const el = container.querySelector(".form-message");
   if (el) el.classList.remove("form-message--visible");
 }
 
+//Affiche un bouton en cours de chargement
 function setButtonLoading(button, isLoading) {
   if (isLoading) {
     button.disabled = true;
@@ -181,6 +187,7 @@ function setButtonLoading(button, isLoading) {
   }
 }
 
+//Redirige vers une page après un délai
 function redirectAfterDelay(url, delay) {
   setTimeout(function () {
     window.location.href = url;

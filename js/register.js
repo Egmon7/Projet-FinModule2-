@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const fullName = fullNameInput.value.trim();
     const email = emailInput.value.trim();
-    const password = passwordInput.value;
+    const password = passwordInput.value; 
     const confirmPassword = confirmInput.value;
     let hasError = false;
 

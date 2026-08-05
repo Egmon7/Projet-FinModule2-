@@ -64,8 +64,11 @@ projet2/
 │   ├── login.js            # Formulaire de connexion, token, redirection chat
 │   ├── register.js         # Inscription, validation, compteur mot de passe
 │   ├── profile.js          # Profil connecté, bio, déconnexion
-│   ├── chat.js             # Contacts, conversations, messages
+│   ├── chat-state.js       # État partagé, init, refresh, utilitaires chat
+│   ├── chat-contacts.js    # Contacts, conversations, sidebar
+│   ├── chat-messages.js    # Envoi, affichage, recherche, édition messages
 │   ├── cloudinary.js       # Upload images → URL Cloudinary
+│   ├── avatars.js          # Affichage des avatars
 │   ├── blocked-users.js    # Filtrage des comptes test
 │   └── theme.js            # Bascule thème clair / sombre    
 ```

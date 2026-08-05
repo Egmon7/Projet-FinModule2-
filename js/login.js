@@ -60,8 +60,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // récupérer le profil 
       const profileData = await Auth.apiRequest("/auth/me", { auth: true });
-
-      
       const user = profileData.data;
       if (user) {
         Auth.saveUser(user);

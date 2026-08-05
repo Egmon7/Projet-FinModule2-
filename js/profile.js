@@ -1,22 +1,23 @@
 document.addEventListener("DOMContentLoaded", async function () {
-  if (!Auth.isAuthenticated()) {
-    globalThis.location.href = "index.html";
+  // Redirige vers login si pas de token
+  if (!Auth.isAuthenticated()) {    globalThis.location.href = "index.html";
     return;
   }
 
-  document.querySelectorAll("[data-logout]").forEach(function (btn) {
-    btn.addEventListener("click", async function (event) {
+  // Déconnexion : API + nettoyage localStorage
+  document.querySelectorAll("[data-logout]").forEach(function (btn) {    btn.addEventListener("click", async function (event) {
       event.preventDefault();
       await Auth.logout();
       globalThis.location.href = "index.html";
     });
   });
 
+  // Active les boutons bio et photo avant le chargement du profil
   initBioEditor();
   initAvatarEditor();
 
-  try {
-    const response = await Auth.apiRequest("/auth/me", { auth: true });
+  // Charge le profil depuis l'API (ou cache local en secours)
+  try {    const response = await Auth.apiRequest("/auth/me", { auth: true });
     const user = response.data?.user || response.data;
 
     if (!user) {
@@ -39,6 +40,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 });
 
+// Affiche nom, email, bio et avatars dans le panneau profil + sidebar
 function displayProfile(user) {
   const name = Avatars.getUserDisplayName(user);
   const email = user.email || "—";
@@ -66,6 +68,7 @@ function displayProfile(user) {
   setText("profilePanelBio", bio);
 }
 
+// Cache le message d'erreur sous l'avatar
 function hideProfileAvatarError() {
   const el = document.getElementById("profileAvatarError");
   if (!el) return;
@@ -73,6 +76,7 @@ function hideProfileAvatarError() {
   el.classList.add("hidden");
 }
 
+// Affiche une erreur d'upload photo sous l'avatar
 function showProfileAvatarError(message) {
   const el = document.getElementById("profileAvatarError");
   if (!el) return;
@@ -80,6 +84,7 @@ function showProfileAvatarError(message) {
   el.classList.remove("hidden");
 }
 
+// Bouton + :  fichier → Cloudinary → sauvegarde avatarUrl sur l'API
 function initAvatarEditor() {
   const pickBtn = document.getElementById("profileAvatarBtn");
   const fileInput = document.getElementById("profileAvatarInput");
@@ -119,6 +124,7 @@ function initAvatarEditor() {
   });
 }
 
+// Envoie bio ou avatarUrl à l'API 
 async function updateUserProfile(fields) {
   const candidates = [
     { method: "PATCH", path: "/auth/me" },
@@ -164,6 +170,7 @@ async function updateUserProfile(fields) {
   return refreshed;
 }
 
+// Modal « Modifier ma bio » : ouverture, enregistrement, annulation
 function initBioEditor() {
   const openBtn = document.getElementById("editBioBtn");
   const modal = document.getElementById("bioEditModal");
@@ -207,6 +214,7 @@ function initBioEditor() {
   });
 }
 
+// Ouvre la modal d'édition de la bio
 function openBioModal() {
   const modal = document.getElementById("bioEditModal");
   const input = document.getElementById("bioEditInput");
@@ -216,6 +224,7 @@ function openBioModal() {
   if (input) input.focus();
 }
 
+// Ferme la modal d'édition de la bio
 function closeBioModal() {
   const modal = document.getElementById("bioEditModal");
   if (!modal) return;
@@ -224,6 +233,7 @@ function closeBioModal() {
   hideBioEditError();
 }
 
+// Message d'erreur dans la modal bio
 function showBioEditError(message) {
   const el = document.getElementById("bioEditError");
   if (!el) return;
@@ -231,6 +241,7 @@ function showBioEditError(message) {
   el.classList.remove("hidden");
 }
 
+// Efface le message d'erreur de la modal bio
 function hideBioEditError() {
   const el = document.getElementById("bioEditError");
   if (!el) return;
@@ -238,11 +249,13 @@ function hideBioEditError() {
   el.classList.add("hidden");
 }
 
+// Met à jour le texte d'un élément HTML par son id
 function setText(id, text) {
   const el = document.getElementById(id);
   if (el) el.textContent = text;
 }
 
+// Met à jour un attribut HTML par id DS
 function setAttr(id, attr, value) {
   const el = document.getElementById(id);
   if (el) el.setAttribute(attr, value);
